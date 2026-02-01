@@ -3,13 +3,13 @@ import sqlite3
 import os
 
 # --- Path Configuration ---
-# Since this file is inside the 'ui/' folder, we need to navigate up one level
+# Since this file is inside the 'ui/' folder, we navigate up one level
 # to locate the 'trends_project.db' database file.
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
 DB_PATH = os.path.join(BASE_DIR, "trends_project.db")
 
-# Platform Color Schema for Visualization
+# Platform Color Schema
 PLATFORM_COLORS = {
     "GitHub": "#2dba4e",  # GitHub Green
     "Hacker News": "#ff6600",  # HN Orange
@@ -17,8 +17,7 @@ PLATFORM_COLORS = {
     "Dev.to": "#000000"  # Dev.to Black
 }
 
-# Stop-words list: Generic terms to ignore during connection building.
-# We only want connections based on specific, meaningful topics.
+# Stop-words list: Generic terms to ignore to ensure meaningful connections.
 GENERIC_KEYWORDS = {
     'ai', 'artificial intelligence', 'machine learning', 'genai', 'generative ai',
     'llm', 'gpt', 'tool', 'code', 'data', 'model', 'new', 'app', 'python', 'project',
@@ -47,8 +46,7 @@ class GraphBuilder:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Fetch high-scoring posts (Trend Score > 15) to reduce noise
-        # We also fetch 'content' to display a summary in the tooltip
+        # Fetch posts with a Trend Score > 15 to reduce visual noise
         cursor.execute('''
             SELECT id, title, source_platform, found_keywords, trend_score, content
             FROM unified_posts 
@@ -73,20 +71,18 @@ class GraphBuilder:
 
             # Content Summary for Tooltip
             if content:
-                # Clean newlines for cleaner HTML display
                 clean_content = content.replace('\n', ' ').replace('\r', '')
                 preview_text = clean_content[:350] + "..." if len(clean_content) > 350 else clean_content
             else:
                 preview_text = "No content preview available."
 
-            # Construct HTML Tooltip
+            # HTML Tooltip
             hover_text = (f"<b>{title}</b><br>"
                           f"<span style='color: gray;'>{platform} | Score: {score:.1f}</span><br><br>"
                           f"<b>Summary:</b><br><i>{preview_text}</i><br><br>"
                           f"<b>Keywords:</b> {', '.join(list(strong_keywords_set)[:5])}")
 
-            # Add Node to Graph
-            # Note: We convert strong_keys to a list because sets are not JSON serializable by PyVis
+            # Add Node
             self.graph.add_node(post_id,
                                 label=short_label,
                                 title=hover_text,
@@ -95,7 +91,7 @@ class GraphBuilder:
                                 group=platform,
                                 strong_keys=list(strong_keywords_set))
 
-            # --- Step 2: Add Edges (Connections) ---
+            # --- Step 2: Add Edges ---
         nodes = list(self.graph.nodes(data=True))
 
         for i in range(len(nodes)):
@@ -103,19 +99,16 @@ class GraphBuilder:
                 id1, data1 = nodes[i]
                 id2, data2 = nodes[j]
 
-                # Retrieve keywords (convert back to set for intersection)
                 set1 = set(data1['strong_keys'])
                 set2 = set(data2['strong_keys'])
 
-                # Find shared topics
                 shared = set1 & set2
 
-                # Connection Threshold: At least 1 meaningful keyword shared
+                # Link Threshold: At least 1 shared keyword
                 MIN_COMMON_WORDS = 1
 
                 if len(shared) >= MIN_COMMON_WORDS:
                     weight = len(shared)
-                    # Edge thickness depends on how many words they share
                     self.graph.add_edge(id1, id2,
                                         value=weight,
                                         title=f"Shared Topics: {', '.join(list(shared))}")

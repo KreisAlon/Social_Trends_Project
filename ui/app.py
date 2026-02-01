@@ -6,7 +6,7 @@ from pyvis.network import Network
 import streamlit.components.v1 as components
 import os
 
-# Import the GraphBuilder logic (located in the same folder)
+# Import the GraphBuilder logic
 from graph_analyzer import GraphBuilder
 
 # --- Page Configuration ---
@@ -17,7 +17,6 @@ st.set_page_config(
 )
 
 # --- Path Configuration ---
-# Navigate up to the root directory to find the DB
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
 DB_PATH = os.path.join(BASE_DIR, "trends_project.db")
@@ -71,12 +70,10 @@ else:
     with tab1:
         st.subheader("🔥 Top Trending Topics")
 
-        # Sidebar-style filters within the tab
         platforms = st.multiselect("Filter by Platform", df['source_platform'].unique(),
                                    default=df['source_platform'].unique())
         filtered_df = df[df['source_platform'].isin(platforms)]
 
-        # Interactive Dataframe
         st.dataframe(
             filtered_df[['source_platform', 'title', 'trend_score', 'sentiment', 'raw_score', 'url']],
             column_config={
@@ -104,15 +101,41 @@ else:
             if G.number_of_nodes() > 0:
                 # Initialize PyVis Network
                 net = Network(height="600px", width="100%", bgcolor="#222222", font_color="white")
-
-                # Convert NetworkX graph to PyVis
                 net.from_nx(G)
 
-                # Save as temporary HTML file to render in Streamlit
+                # --- PHYSICS STABILIZATION FIX ---
+                # This configuration stops the "dancing" effect.
+                # 1. 'stabilization': Pre-calculates layout before rendering.
+                # 2. 'damping': Adds resistance to movement.
+                # 3. 'minVelocity': Stops animation when movement is small.
+                net.set_options("""
+                var options = {
+                  "physics": {
+                    "barnesHut": {
+                      "gravitationalConstant": -4000,
+                      "centralGravity": 0.3,
+                      "springLength": 95,
+                      "springConstant": 0.04,
+                      "damping": 0.09,
+                      "avoidOverlap": 0.2
+                    },
+                    "stabilization": {
+                      "enabled": true,
+                      "iterations": 1000,
+                      "updateInterval": 100,
+                      "onlyDynamicEdges": false,
+                      "fit": true
+                    },
+                    "minVelocity": 0.75,
+                    "solver": "barnesHut"
+                  }
+                }
+                """)
+
+                # Save and Render
                 path = os.path.join(CURRENT_DIR, "tmp_network.html")
                 net.save_graph(path)
 
-                # Read and display the HTML
                 with open(path, 'r', encoding='utf-8') as f:
                     source_code = f.read()
                 components.html(source_code, height=600)
@@ -127,13 +150,12 @@ else:
 
         with col_a:
             st.markdown("**Sentiment Distribution by Platform**")
-            # Box plot to show sentiment spread
+            # Using Box Plot to show sentiment spread (Min, Max, Median)
             fig_sent = px.box(df, x="source_platform", y="sentiment", color="source_platform", points="all")
             st.plotly_chart(fig_sent, use_container_width=True)
 
         with col_b:
             st.markdown("**Trend Score Distribution**")
-            # Histogram to show score frequency
             fig_hist = px.histogram(df, x="trend_score", nbins=20, title="Trend Score Spread",
                                     color_discrete_sequence=['#3366cc'])
             st.plotly_chart(fig_hist, use_container_width=True)
