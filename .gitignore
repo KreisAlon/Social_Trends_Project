@@ -1,0 +1,19 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Mac OS specific
+.DS_Store
+
+# IDE settings
+.idea/
+.vscode/
