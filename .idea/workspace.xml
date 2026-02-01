@@ -5,8 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/check_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/collectors/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/collectors/hacker_news.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/hacker_news.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/collectors/mastodon.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/mastodon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tmp_network.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/ui/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui/graph_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/graph_analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui/tmp_network.html" beforeDir="false" afterPath="$PROJECT_DIR$/ui/tmp_network.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

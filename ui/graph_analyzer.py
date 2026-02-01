@@ -3,50 +3,37 @@ import sqlite3
 import os
 
 # --- Path Configuration ---
-# Since this file is inside the 'ui/' folder, we navigate up one level
-# to locate the 'trends_project.db' database file.
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(CURRENT_DIR)
 DB_PATH = os.path.join(BASE_DIR, "trends_project.db")
 
-# Platform Color Schema
 PLATFORM_COLORS = {
-    "GitHub": "#2dba4e",  # GitHub Green
-    "Hacker News": "#ff6600",  # HN Orange
-    "Mastodon": "#6364ff",  # Mastodon Purple
-    "Dev.to": "#000000"  # Dev.to Black
+    "GitHub": "#2dba4e",  # Green
+    "Hacker News": "#ff6600",  # Orange
+    "Mastodon": "#6364ff",  # Purple
+    "Dev.to": "#000000"  # Black
 }
 
-# Stop-words list: Generic terms to ignore to ensure meaningful connections.
+# Stop words to ignore in graph connections
 GENERIC_KEYWORDS = {
     'ai', 'artificial intelligence', 'machine learning', 'genai', 'generative ai',
     'llm', 'gpt', 'tool', 'code', 'data', 'model', 'new', 'app', 'python', 'project',
-    'using', 'via', 'show', 'hn'
+    'using', 'via', 'show', 'hn', 'launch', 'release', 'agent', 'agents'
 }
 
 
 class GraphBuilder:
-    """
-    Builds a semantic network graph connecting posts from different platforms.
-    Nodes = Posts
-    Edges = Shared meaningful keywords
-    """
-
     def __init__(self):
         self.graph = nx.Graph()
 
     def build_graph(self):
-        """
-        Fetches high-trending posts from the DB and constructs the graph.
-        """
         if not os.path.exists(DB_PATH):
-            print(f"[Graph] Error: Database not found at {DB_PATH}")
             return self.graph
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Fetch posts with a Trend Score > 15 to reduce visual noise
+        # Fetch high-quality nodes only (>15 score)
         cursor.execute('''
             SELECT id, title, source_platform, found_keywords, trend_score, content
             FROM unified_posts 
@@ -55,62 +42,59 @@ class GraphBuilder:
         rows = cursor.fetchall()
         conn.close()
 
-        print(f"[Graph] Processing {len(rows)} nodes...")
-
-        # --- Step 1: Add Nodes ---
+        # Step 1: Add Nodes
         for row in rows:
             post_id, title, platform, keywords_str, score, content = row
 
-            # Process keywords
             keywords = [k.strip().lower() for k in keywords_str.split(',')] if keywords_str else []
             strong_keywords_set = set(keywords) - GENERIC_KEYWORDS
+            strong_keywords_list = list(strong_keywords_set)
 
-            # Visual styling
             node_color = PLATFORM_COLORS.get(platform, "#808080")
             short_label = title[:20] + "..." if len(title) > 20 else title
 
-            # Content Summary for Tooltip
+            # Create rich HTML tooltip
             if content:
                 clean_content = content.replace('\n', ' ').replace('\r', '')
-                preview_text = clean_content[:350] + "..." if len(clean_content) > 350 else clean_content
+                preview_text = clean_content[:300] + "..." if len(clean_content) > 300 else clean_content
             else:
-                preview_text = "No content preview available."
+                preview_text = "No content preview."
 
-            # HTML Tooltip
             hover_text = (f"<b>{title}</b><br>"
                           f"<span style='color: gray;'>{platform} | Score: {score:.1f}</span><br><br>"
                           f"<b>Summary:</b><br><i>{preview_text}</i><br><br>"
-                          f"<b>Keywords:</b> {', '.join(list(strong_keywords_set)[:5])}")
+                          f"<b>Keywords:</b> {', '.join(strong_keywords_list[:5])}")
 
-            # Add Node
             self.graph.add_node(post_id,
                                 label=short_label,
                                 title=hover_text,
                                 color=node_color,
                                 value=score,
                                 group=platform,
-                                strong_keys=list(strong_keywords_set))
+                                strong_keys=strong_keywords_list)
 
-            # --- Step 2: Add Edges ---
+            # Step 2: Add Edges (Connections based on shared keywords)
         nodes = list(self.graph.nodes(data=True))
-
         for i in range(len(nodes)):
             for j in range(i + 1, len(nodes)):
                 id1, data1 = nodes[i]
                 id2, data2 = nodes[j]
 
-                set1 = set(data1['strong_keys'])
-                set2 = set(data2['strong_keys'])
+                shared = set(data1['strong_keys']) & set(data2['strong_keys'])
 
-                shared = set1 & set2
+                if len(shared) >= 1:
+                    self.graph.add_edge(id1, id2, value=len(shared), title=f"Shared: {list(shared)}")
 
-                # Link Threshold: At least 1 shared keyword
-                MIN_COMMON_WORDS = 1
+        # --- STATIC LAYOUT FIX (Anti-Dance) ---
+        # We calculate positions HERE, in Python.
+        if self.graph.number_of_nodes() > 0:
+            # spring_layout calculates the X,Y coordinates
+            pos = nx.spring_layout(self.graph, seed=42, k=0.8, iterations=100)
 
-                if len(shared) >= MIN_COMMON_WORDS:
-                    weight = len(shared)
-                    self.graph.add_edge(id1, id2,
-                                        value=weight,
-                                        title=f"Shared Topics: {', '.join(list(shared))}")
+            for node, cords in pos.items():
+                # Scale coordinates for PyVis
+                self.graph.nodes[node]['x'] = cords[0] * 1000
+                self.graph.nodes[node]['y'] = cords[1] * 1000
+                self.graph.nodes[node]['physics'] = False  # Lock node in place
 
         return self.graph

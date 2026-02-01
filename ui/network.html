@@ -1,0 +1,236 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #1E1E1E;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+             /* position absolute is important and the container has to be relative or absolute as well. */
+          div.popup {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 display:none;
+                 background-color:#f5f4ed;
+                 -moz-border-radius: 3px;
+                 -webkit-border-radius: 3px;
+                 border-radius: 3px;
+                 border: 1px solid #808074;
+                 box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+          }
+
+          /* hide the original tooltip */
+          .vis-tooltip {
+            display:none;
+          }
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"font": {"color": "white"}, "group": "GitHub", "id": 2, "label": "stable-diffusion-web...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["stable diffusion", "diffusion"], "title": "\u003cb\u003estable-diffusion-webui\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 51.3\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eStable Diffusion web UI\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e stable diffusion, diffusion", "value": 51.3, "x": 707.1569774039685, "y": 193.34101803557093}, {"font": {"color": "white"}, "group": "GitHub", "id": 8, "label": "ComfyUI", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["diffusion"], "title": "\u003cb\u003eComfyUI\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 41.6\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eThe most powerful and modular diffusion model GUI, api and backend with a graph/nodes interface.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e diffusion", "value": 41.6, "x": 484.2456133878515, "y": 126.19662646179641}, {"font": {"color": "white"}, "group": "Hacker News", "id": 13, "label": "Turning Karpathy\u0027s A...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["diffusion"], "title": "\u003cb\u003eTurning Karpathy\u0027s Autoregressive Baby GPT into Diffusion GPT Step by Step\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eHacker News | Score: 20.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eNo content preview.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e diffusion", "value": 20.5, "x": 588.6164062308976, "y": 251.44660418940646}, {"font": {"color": "white"}, "group": "GitHub", "id": 5, "label": "open-webui", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["openai", "llama"], "title": "\u003cb\u003eopen-webui\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 45.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eUser-friendly AI Interface (Supports Ollama, OpenAI API, ...)\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e openai, llama", "value": 45.5, "x": 360.2461336046994, "y": 602.330204811394}, {"font": {"color": "white"}, "group": "Mastodon", "id": 22, "label": "Toot by @remixtures", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["anthropic", "openai", "nvidia", "deepseek"], "title": "\u003cb\u003eToot by @remixtures\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 30.2\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003e\"China\u2019s genius classes differ in important ways from talent streams in the west. First, the system dwarfs its international competitors in scale. Second, it is state-driven. China graduates around five million majors in science, technology, engineering and maths every year, according to the stat...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e anthropic, openai, nvidia, deepseek", "value": 30.2, "x": 140.4785992385657, "y": 403.0119415656116}, {"font": {"color": "white"}, "group": "Dev.to", "id": 27, "label": "Native Inference: Te...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["llama"], "title": "\u003cb\u003eNative Inference: Testing an SLM (L3.1-8B-I) on C Pointer Logic\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 29.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eI recently installed llama-cli on my Linux Debian laptop. Rather than using wrappers like lmstudio or...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e llama", "value": 29.5, "x": 571.1112499504501, "y": 745.8726402205128}, {"font": {"color": "white"}, "group": "Dev.to", "id": 36, "label": "How to Use OpenClaw ...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["openai"], "title": "\u003cb\u003eHow to Use OpenClaw with Azure Foundry OpenAI Using LiteLLM Proxy\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 29.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eConnect OpenClaw AI coding agent to Azure OpenAI using LiteLLM proxy. Use your $5k Azure Sponsorship or MSDN credits with the 124k-star open-source AI assistant. Step-by-step guide with working config.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e openai", "value": 29.5, "x": 248.67346351814527, "y": 455.3320039014718}, {"font": {"color": "white"}, "group": "GitHub", "id": 6, "label": "system-prompts-and-m...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["claude"], "title": "\u003cb\u003esystem-prompts-and-models-of-ai-tools\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 43.6\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eFULL Augment Code, Claude Code, Cluely, CodeBuddy, Comet, Cursor, Devin AI, Junie, Kiro, Leap.new, Lovable, Manus, NotionAI, Orchids.app, Perplexity, Poke, Qoder, Replit, Same.dev, Trae, Traycer AI, VSCode Agent, Warp.dev, Windsurf, Xcode, Z.ai Code, Dia \u0026 v0. (And other Open Sourced) System Prompts...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e claude", "value": 43.6, "x": -857.3827356664046, "y": 433.24157885079927}, {"font": {"color": "white"}, "group": "Mastodon", "id": 24, "label": "Toot by @sayzard", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["claude"], "title": "\u003cb\u003eToot by @sayzard\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003eTestingCatalog News (@testingcatalog)\u003c/p\u003e\u003cp\u003eClaude Code Commands\uac00 \ucd5c\uadfc\uc5d0 \ucd9c\uc2dc\ub41c \u0027\ubc88\ub4e4(bundles)\u0027\uc5d0\uc11c\ub3c4 \uc9c0\uc6d0\ub420 \uac83\uc73c\ub85c \ubcf4\uc778\ub2e4\ub294 \uc5b8\uae09\uc785\ub2c8\ub2e4. \ud574\ub2f9 \uc9c0\uc6d0\uc774 \ucd94\uac00\ub418\uba74 Claude \uad00\ub828 \ucf54\ub4dc \uba85\ub839 \uae30\ub2a5\uc774 \ubc88\ub4e4 \uc81c\ud488\ub4e4\uacfc \uacb0\ud569\ub418\uc5b4 \ub354 \uac15\ub825\ud574\uc9c8 \uac83\uc774\ub77c\ub294 \uae30\ub300\ub97c \ud45c\ud604\ud558\uace0 \uc788\uc2b5\ub2c8\ub2e4.\u003c/p\u003e\u003cp\u003e\u003ca href=\"https://x.com/testingcatalog/status/2017946109889389027\" rel=\"nofollow noopener\" translate=\"no\" tar...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e claude", "value": 26.1, "x": -660.2600834972671, "y": 394.66862290845904}, {"font": {"color": "white"}, "group": "Dev.to", "id": 31, "label": "Bridging Two Worlds:...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["claude"], "title": "\u003cb\u003eBridging Two Worlds: Custom ASL Model on EKS + Claude Facilitation via Context Engineering\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 25.7\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003ePart 1 covered training an ASL recognition model on EKS. This part focuses on deploying that model...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e claude", "value": 25.7, "x": -693.4172361738647, "y": 278.18195652056585}, {"font": {"color": "white"}, "group": "Hacker News", "id": 12, "label": "Nvidia\u0027s 10-year eff...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["nvidia"], "title": "\u003cb\u003eNvidia\u0027s 10-year effort to make the Shield TV the most updated Android device\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eHacker News | Score: 55.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eNo content preview.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e nvidia", "value": 55.1, "x": -28.095450442339434, "y": 159.0385372468611}, {"font": {"color": "white"}, "group": "Mastodon", "id": 16, "label": "Toot by @ICalzada", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["rag"], "title": "\u003cb\u003eToot by @ICalzada\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003eTomorrow I\u0026#39;ll be \u003ca href=\"https://mastodon.social/tags/lectureship\" class=\"mention hashtag\" rel=\"tag\"\u003e#\u003cspan\u003electureship\u003c/span\u003e\u003c/a\u003e on \u003ca href=\"https://mastodon.social/tags/DigitalRights\" class=\"mention hashtag\" rel=\"tag\"\u003e#\u003cspan\u003eDigitalRights\u003c/span\u003e\u003c/a\u003e \u0026amp; \u003ca href=\"https://mastodon.social/...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e rag", "value": 26.1, "x": 612.4736819846787, "y": -695.7820444021535}, {"font": {"color": "white"}, "group": "Mastodon", "id": 18, "label": "Toot by @KimPerales", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["rag"], "title": "\u003cb\u003eToot by @KimPerales\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003eAbout 50 residents of a community outside Chile\u2019s capital spent Sat trying their best to\u26a1power an entirely human-op chatbot that could answer Qs \u0026amp; make silly pics on command, in a msg\ud83d\udea8to highlight the environmental toll of \u003ca href=\"https://toad.social/tags/AIDataCenters\" class=\"mention hashta...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e rag", "value": 26.1, "x": 557.9553331069877, "y": -534.4943985468492}, {"font": {"color": "white"}, "group": "Mastodon", "id": 19, "label": "Toot by @remixtures", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["rag"], "title": "\u003cb\u003eToot by @remixtures\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 30.2\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003e\"I present a descriptive analysis of Moltbook, a social platform populated exclusively by AI agents, using data from the platform\u2019s first 3.5 days (6,159 agents; 13,875 posts; 115,031\u003cbr\u003ecomments). At the macro level, Moltbook exhibits structural signatures that are familiar from human social net...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e rag", "value": 30.2, "x": 470.79787405989566, "y": -653.1076408935827}, {"font": {"color": "white"}, "group": "Dev.to", "id": 33, "label": "Beyond External Stor...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["rag"], "title": "\u003cb\u003eBeyond External Storage: What if AI Could Remember Like We Do?\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 36.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eA Deep Dive Into Internalized Memory for Artificial Intelligence              Introduction: A...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e rag", "value": 36.0, "x": 439.7874785751121, "y": -553.1834318900611}, {"font": {"color": "white"}, "group": "GitHub", "id": 1, "label": "AutoGPT", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eAutoGPT\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 54.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eAutoGPT is the vision of accessible AI for everyone, to use and to build on. Our mission is to provide the tools, so that you can focus on what matters.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 54.0, "x": 93.73006461368061, "y": 920.1731200312684}, {"font": {"color": "white"}, "group": "GitHub", "id": 3, "label": "prompts.chat", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eprompts.chat\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 49.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003ea.k.a. Awesome ChatGPT Prompts. Share, discover, and collect prompts from the community. Free and open source \u2014 self-host for your organization with complete privacy.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 49.0, "x": -494.172310491919, "y": -886.8874323876668}, {"font": {"color": "white"}, "group": "GitHub", "id": 4, "label": "langchain", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["langchain"], "title": "\u003cb\u003elangchain\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 46.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\ud83e\udd9c\ud83d\udd17 The platform for reliable agents.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e langchain", "value": 46.0, "x": -958.8145246387191, "y": 235.78334099896622}, {"font": {"color": "white"}, "group": "GitHub", "id": 7, "label": "generative-ai-for-be...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003egenerative-ai-for-beginners\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 42.4\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e21 Lessons, Get Started Building with Generative AI \u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 42.4, "x": 843.0164089090136, "y": -469.86301398882307}, {"font": {"color": "white"}, "group": "GitHub", "id": 9, "label": "gemini-cli", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["gemini"], "title": "\u003cb\u003egemini-cli\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 39.7\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eAn open-source AI agent that brings the power of Gemini directly into your terminal.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e gemini", "value": 39.7, "x": -743.9871834402101, "y": -509.5283009935451}, {"font": {"color": "white"}, "group": "GitHub", "id": 10, "label": "LLMs-from-scratch", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eLLMs-from-scratch\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eGitHub | Score: 37.6\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eImplement a ChatGPT-like LLM in PyTorch from scratch, step by step\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 37.6, "x": 393.6787013743155, "y": -838.3357082343291}, {"font": {"color": "white"}, "group": "Hacker News", "id": 11, "label": "Generative AI and Wi...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eGenerative AI and Wikipedia editing: What we learned in 2025\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eHacker News | Score: 54.9\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eNo content preview.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 54.9, "x": 242.07823670897176, "y": -943.3150739640296}, {"font": {"color": "white"}, "group": "Hacker News", "id": 14, "label": "Browser Agent Benchm...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eBrowser Agent Benchmark: Comparing LLM models for web automation\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eHacker News | Score: 26.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eNo content preview.\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 26.0, "x": -957.0463007770625, "y": 11.01851048946778}, {"font": {"color": "white"}, "group": "Mastodon", "id": 15, "label": "Toot by @DyingWorld", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eToot by @DyingWorld\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003eCan we start referring to LLMs as \u0026quot;artificial artificial intelligence?\u0026quot;\u003c/p\u003e\u003cp\u003e\u003ca href=\"https://mastodon.social/tags/ai\" class=\"mention hashtag\" rel=\"tag\"\u003e#\u003cspan\u003eai\u003c/span\u003e\u003c/a\u003e\u003c/p\u003e\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 26.1, "x": 26.74993887809863, "y": -1000.0}, {"font": {"color": "white"}, "group": "Mastodon", "id": 17, "label": "Toot by @remixtures", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eToot by @remixtures\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003e\"From Censys\u2019s vantage point, this rapid adoption is reflected by its exposure footprint on the public Internet. Although OpenClaw is designed to run locally on TCP/18789 or be accessed through protective mechanisms like SSH or Cloudflare Tunnel, Censys has identified more than 21,000 publicly ex...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 26.1, "x": -521.6721327723543, "y": 824.4621582186933}, {"font": {"color": "white"}, "group": "Mastodon", "id": 20, "label": "Toot by @chewie", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eToot by @chewie\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003eI was chatting to a mate last night, and he had a problem with some antivirus software at work, so he asked \u003ca href=\"https://mammut.gogreenit.net/tags/ChatGPT\" class=\"mention hashtag\" rel=\"nofollow noopener\" target=\"_blank\"\u003e#\u003cspan\u003eChatGPT\u003c/span\u003e\u003c/a\u003e for a solution, and it said to upgrade to a spe...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 26.1, "x": 897.852565714684, "y": -3.5220608670899987}, {"font": {"color": "white"}, "group": "Mastodon", "id": 21, "label": "Toot by @Philip", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eToot by @Philip\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp class=\"quote-inline\"\u003eRE: \u003ca href=\"https://fosstodon.org/@adafruit/115995710810113549\" rel=\"nofollow noopener\" translate=\"no\" target=\"_blank\"\u003e\u003cspan class=\"invisible\"\u003ehttps://\u003c/span\u003e\u003cspan class=\"ellipsis\"\u003efosstodon.org/@adafruit/115995\u003c/span\u003e\u003cspan class=\"invisible\"\u003e710810113549\u003c/span\u003e\u003c/a\u003e\u003c/p\u003e\u003cp\u003eArt...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 26.1, "x": -962.5415090789551, "y": -196.0385210764626}, {"font": {"color": "white"}, "group": "Mastodon", "id": 23, "label": "Toot by @kzoneind", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eToot by @kzoneind\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eMastodon | Score: 26.1\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\u003cp\u003e\u003ca href=\"https://mstdn.social/tags/ITByte\" class=\"mention hashtag\" rel=\"nofollow noopener\" target=\"_blank\"\u003e#\u003cspan\u003eITByte\u003c/span\u003e\u003c/a\u003e: \u003ca href=\"https://mstdn.social/tags/Moltbook\" class=\"mention hashtag\" rel=\"nofollow noopener\" target=\"_blank\"\u003e#\u003cspan\u003eMoltbook\u003c/span\u003e\u003c/a\u003e is a viral, Reddit-like soci...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 26.1, "x": -122.58533122583364, "y": 874.8336513274393}, {"font": {"color": "white"}, "group": "Dev.to", "id": 25, "label": "\ud83e\udd80 Inside Moltbook: W...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003e\ud83e\udd80 Inside Moltbook: When AI Agents Built Their Own Internet\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 41.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003e\ud83e\udd80 Moltbook: Inside the World Where AI Agents Run Their Own Social Network \ud83e\udd16   In the rapidly...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 41.5, "x": -215.7847862411448, "y": -940.5453964214615}, {"font": {"color": "white"}, "group": "Dev.to", "id": 26, "label": "Building Interoperab...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eBuilding Interoperable AI Business Agents with UCP: DevBooks Agent Implementation Analysis\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 29.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003ePrevious Article Recap   In the previous article, we explored how to implement Agentic...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 29.5, "x": 901.75042925133, "y": 278.1116296102503}, {"font": {"color": "white"}, "group": "Dev.to", "id": 28, "label": "Deep dive into how B...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eDeep dive into how Bifrost\u2019s MCP Gateway and Code Mode enable scalable, production-grade LLM systems \ud83d\udd25, reducing token costs, improving determinism, and making MCP-based AI workflows predictable, debuggable, and ready for real-world infrastructure.\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 36.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eHow Bifrost\u2019s MCP Gateway and Code Mode Power Production-Grade...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 36.0, "x": 349.5171989730513, "y": 852.9165423396364}, {"font": {"color": "white"}, "group": "Dev.to", "id": 29, "label": "Defense in Depth: A ...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eDefense in Depth: A Multi-Layered Strategy Against Persistent LLM Hallucinations\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 25.7\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eDefense in Depth: A Multi-Layered Strategy Against Persistent LLM...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 25.7, "x": -710.084619960453, "y": -730.9050357288892}, {"font": {"color": "white"}, "group": "Dev.to", "id": 30, "label": "Why Your Codebase is...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["copilot"], "title": "\u003cb\u003eWhy Your Codebase is Invisible to AI (And What to Do About It)\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 25.7\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003ePart 2 of 7: The AI Code Debt Tsunami Series  I watched GitHub Copilot suggest the same validation...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e copilot", "value": 25.7, "x": -915.7239238129582, "y": -431.1131742030138}, {"font": {"color": "white"}, "group": "Dev.to", "id": 32, "label": "AI Agents Are Becomi...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eAI Agents Are Becoming Digital Citizens\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 36.0\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eWhy intelligence alone is not enough and what humans have already learned about...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 36.0, "x": 910.9271457372676, "y": -232.1855240329043}, {"font": {"color": "white"}, "group": "Dev.to", "id": 34, "label": "From Theory to Auton...", "physics": false, "shape": "dot", "size": 10, "strong_keys": [], "title": "\u003cb\u003eFrom Theory to Autonomy: Navigating the World of Intelligent Agents\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 29.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eThe leap from training a simple linear regression model to building a system that \"thinks\" and reacts...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e ", "value": 29.5, "x": -688.6942404145514, "y": 670.0697006154559}, {"font": {"color": "white"}, "group": "Dev.to", "id": 35, "label": "Model Adaptation: Pr...", "physics": false, "shape": "dot", "size": 10, "strong_keys": ["fine-tuning"], "title": "\u003cb\u003eModel Adaptation: Prompt-Based Techniques vs Fine-Tuning\u003c/b\u003e\u003cbr\u003e\u003cspan style=\u0027color: gray;\u0027\u003eDev.to | Score: 29.5\u003c/span\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eSummary:\u003c/b\u003e\u003cbr\u003e\u003ci\u003eIntroduction   Firstly, it is important to understand why we need to adapt a model and what...\u003c/i\u003e\u003cbr\u003e\u003cbr\u003e\u003cb\u003eKeywords:\u003c/b\u003e fine-tuning", "value": 29.5, "x": -310.5811325876289, "y": 908.7763692872344}]);
+                  edges = new vis.DataSet([{"from": 2, "title": "Shared: [\u0027diffusion\u0027]", "to": 8, "value": 1, "width": 1}, {"from": 2, "title": "Shared: [\u0027diffusion\u0027]", "to": 13, "value": 1, "width": 1}, {"from": 5, "title": "Shared: [\u0027openai\u0027]", "to": 22, "value": 1, "width": 1}, {"from": 5, "title": "Shared: [\u0027llama\u0027]", "to": 27, "value": 1, "width": 1}, {"from": 5, "title": "Shared: [\u0027openai\u0027]", "to": 36, "value": 1, "width": 1}, {"from": 6, "title": "Shared: [\u0027claude\u0027]", "to": 24, "value": 1, "width": 1}, {"from": 6, "title": "Shared: [\u0027claude\u0027]", "to": 31, "value": 1, "width": 1}, {"from": 8, "title": "Shared: [\u0027diffusion\u0027]", "to": 13, "value": 1, "width": 1}, {"from": 12, "title": "Shared: [\u0027nvidia\u0027]", "to": 22, "value": 1, "width": 1}, {"from": 16, "title": "Shared: [\u0027rag\u0027]", "to": 18, "value": 1, "width": 1}, {"from": 16, "title": "Shared: [\u0027rag\u0027]", "to": 19, "value": 1, "width": 1}, {"from": 16, "title": "Shared: [\u0027rag\u0027]", "to": 33, "value": 1, "width": 1}, {"from": 18, "title": "Shared: [\u0027rag\u0027]", "to": 19, "value": 1, "width": 1}, {"from": 18, "title": "Shared: [\u0027rag\u0027]", "to": 33, "value": 1, "width": 1}, {"from": 19, "title": "Shared: [\u0027rag\u0027]", "to": 33, "value": 1, "width": 1}, {"from": 22, "title": "Shared: [\u0027openai\u0027]", "to": 36, "value": 1, "width": 1}, {"from": 24, "title": "Shared: [\u0027claude\u0027]", "to": 31, "value": 1, "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": false,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+                  // make a custom popup
+                      var popup = document.createElement("div");
+                      popup.className = 'popup';
+                      popupTimeout = null;
+                      popup.addEventListener('mouseover', function () {
+                          console.log(popup)
+                          if (popupTimeout !== null) {
+                              clearTimeout(popupTimeout);
+                              popupTimeout = null;
+                          }
+                      });
+                      popup.addEventListener('mouseout', function () {
+                          if (popupTimeout === null) {
+                              hidePopup();
+                          }
+                      });
+                      container.appendChild(popup);
+
+
+                      // use the popup event to show
+                      network.on("showPopup", function (params) {
+                          showPopup(params);
+                      });
+
+                      // use the hide event to hide it
+                      network.on("hidePopup", function (params) {
+                          hidePopup();
+                      });
+
+                      // hiding the popup through css
+                      function hidePopup() {
+                          popupTimeout = setTimeout(function () { popup.style.display = 'none'; }, 500);
+                      }
+
+                      // showing the popup
+                      function showPopup(nodeId) {
+                          // get the data from the vis.DataSet
+                          var nodeData = nodes.get([nodeId]);
+                          popup.innerHTML = nodeData[0].title;
+
+                          // get the position of the node
+                          var posCanvas = network.getPositions([nodeId])[nodeId];
+
+                          // get the bounding box of the node
+                          var boundingBox = network.getBoundingBox(nodeId);
+
+                          //position tooltip:
+                          posCanvas.x = posCanvas.x + 0.5 * (boundingBox.right - boundingBox.left);
+
+                          // convert coordinates to the DOM space
+                          var posDOM = network.canvasToDOM(posCanvas);
+
+                          // Give it an offset
+                          posDOM.x += 10;
+                          posDOM.y -= 20;
+
+                          // show and place the tooltip.
+                          popup.style.display = 'block';
+                          popup.style.top = posDOM.y + 'px';
+                          popup.style.left = posDOM.x + 'px';
+                      }
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
