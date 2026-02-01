@@ -6,14 +6,21 @@ from .base import BaseCollector
 class GitHubCollector(BaseCollector):
     def __init__(self):
         super().__init__("GitHub")
-        # GitHub usually has high variance naturally, so less damping needed.
+
+        # --- Statistical Tuning (Boosting) ---
+        # GitHub repos have massive star counts (Mean > 1000).
+        # Standard deviation is naturally high, making it hard to get a high Z-Score.
+        # Solution:
+        # 1. Low 'damping_factor' (0.5) acts as a multiplier, boosting the score.
+        # 2. Low 'sigmoid_shift' (0.2) lowers the threshold for trending status.
         self.stats_config.update({
             'min_stdev': 1.0,
-            'damping_factor': 1.0,
-            'sigmoid_shift': 0.5
+            'damping_factor': 0.5,  # Boost factor: rewards deviations more generously
+            'sigmoid_shift': 0.2  # Lower threshold to help GitHub repos compete
         })
 
     def is_quality_content(self, post):
+        # Filter out empty repositories with 0 stars
         if post['raw_score'] < 1:
             return False
         return super().is_quality_content(post)
@@ -21,6 +28,7 @@ class GitHubCollector(BaseCollector):
     async def collect(self, client):
         print(f"--- {self.platform_name}: Searching repos... ---")
         posts = []
+        # Searching for repositories pushed recently with AI topics
         url = "https://api.github.com/search/repositories?q=topic:ai+pushed:>2024-01-01&sort=stars&order=desc&per_page=15"
 
         try:
@@ -35,6 +43,9 @@ class GitHubCollector(BaseCollector):
                     if found_keys:
                         raw_score = item.get('stargazers_count', 0)
 
+                        # --- SENTIMENT ---
+                        sentiment = self.analyze_sentiment(name + " " + desc)
+
                         post = {
                             'source_platform': self.platform_name,
                             'external_id': str(item.get('id')),
@@ -43,10 +54,11 @@ class GitHubCollector(BaseCollector):
                             'author': item.get('owner', {}).get('login', ''),
                             'published_at': item.get('created_at', datetime.now()),
                             'raw_score': raw_score,
+                            'sentiment': sentiment,  # Added
                             'url': item.get('html_url', ''),
                             'keywords': found_keys
                         }
-                        post['sentiment'] = self.analyze_sentiment(post['title'] + " " + post['content'])
+
                         if self.is_quality_content(post):
                             posts.append(post)
                             print(f"   [{self.platform_name}] Found: {item.get('name')}")

@@ -6,16 +6,21 @@ from .base import BaseCollector
 class MastodonCollector(BaseCollector):
     def __init__(self):
         super().__init__("Mastodon")
-        # --- Mastodon Specific Tuning ---
-        # High damping because small numbers (1-5 likes) create huge variance.
+
+        # --- Statistical Tuning (Aggressive Damping) ---
+        # Problem: Mastodon has very low average engagement (Mean ~= 0.1).
+        # Result: A post with 3 likes could trigger a massive Z-Score (e.g., +10 SD).
+        # Solution:
+        # 1. High 'damping_factor' (3.0) reduces the Z-Score impact.
+        # 2. High 'sigmoid_shift' (1.0) shifts the center, requiring stronger evidence to trend.
         self.stats_config.update({
-            'min_stdev': 0.5,  # Enforce strict minimum variance
-            'damping_factor': 1.5,  # Strong damping to prevent 99.9 scores easily
-            'sigmoid_shift': 0.5  # Require score to be clearly above average
+            'min_stdev': 0.5,  # Prevent division by near-zero variance
+            'damping_factor': 3.0,  # Strongly dampen outliers to prevent false positives
+            'sigmoid_shift': 1.0  # Require significantly above-average performance
         })
 
     def is_quality_content(self, post):
-        # Strict filtering for Mastodon noise
+        # Strict filtering for micro-blogging noise
         if post['raw_score'] == 0 and len(post.get('content', '')) < 50:
             return False
         return super().is_quality_content(post)
@@ -23,6 +28,7 @@ class MastodonCollector(BaseCollector):
     async def collect(self, client):
         print(f"--- {self.platform_name}: Scanning feed... ---")
         posts = []
+        # Searching for the specific hashtag
         url = "https://mastodon.social/api/v1/timelines/tag/AI?limit=40"
 
         try:
@@ -30,13 +36,19 @@ class MastodonCollector(BaseCollector):
             if resp.status_code == 200:
                 items = resp.json()
                 for item in items:
-                    if item.get('language') != 'en': continue
-                    content_raw = item.get('content', '').lower()
+                    # Filter: Only process content explicitly marked as English
+                    if item.get('language') != 'en':
+                        continue
 
+                    content_raw = item.get('content', '').lower()
                     found_keys = self.extract_keywords(content_raw)
+
                     if found_keys:
                         raw_score = item.get('favourites_count', 0)
                         username = item.get('account', {}).get('username', 'Unknown')
+
+                        # --- SENTIMENT ---
+                        sentiment = self.analyze_sentiment(content_raw)
 
                         post = {
                             'source_platform': self.platform_name,
@@ -46,10 +58,10 @@ class MastodonCollector(BaseCollector):
                             'author': username,
                             'published_at': item.get('created_at', datetime.now()),
                             'raw_score': raw_score,
+                            'sentiment': sentiment,  # Added
                             'url': item.get('url', ''),
                             'keywords': found_keys
                         }
-                        post['sentiment'] = self.analyze_sentiment(post['title'] + " " + post['content'])
 
                         if self.is_quality_content(post):
                             posts.append(post)

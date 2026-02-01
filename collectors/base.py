@@ -3,8 +3,9 @@ import sqlite3
 import math
 import statistics
 import os
-from config import KEYWORDS
 from textblob import TextBlob
+from langdetect import detect, LangDetectException
+from config import KEYWORDS
 
 # Set base path for database access
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,58 +14,83 @@ DB_PATH = os.path.join(BASE_DIR, "trends_project.db")
 
 class BaseCollector(ABC):
     """
-    Abstract Base Class.
-    Implements the core logic for collection, filtering, keyword extraction,
-    and configurable statistical normalization.
+    Abstract Base Class for all data collectors.
+    Implements core logic, filtering, and statistical normalization.
     """
 
     def __init__(self, platform_name):
         self.platform_name = platform_name
 
         # --- Statistical Configuration ---
-        # Default values. Children override these in __init__.
         self.stats_config = {
-            'min_stdev': 1.0,  # Prevents infinite scores on low variance
-            'damping_factor': 1.0,  # Divides the Z-Score (Higher = harder to rank up)
-            'sigmoid_shift': 0.5,  # Shifts the center (Higher = needs more "exceptionalism")
-            'log_base': 10  # Logarithm base
+            'min_stdev': 1.0,
+            'damping_factor': 1.0,
+            'sigmoid_shift': 0.5,
+            'log_base': 10
         }
 
     @staticmethod
     def extract_keywords(text):
-        """Extracts keywords from text based on config.KEYWORDS."""
+        """
+        Scans the input text for keywords defined in `config.py`.
+        """
         found = []
-        if not text: return found
+        if not text:
+            return found
         text_lower = text.lower()
         for k in KEYWORDS:
             if k in text_lower:
                 found.append(k)
         return list(set(found))
 
-    @abstractmethod
-    async def collect(self, client):
-        """Must be implemented by child classes."""
-        pass
-
-    def is_quality_content(self, post):
-        """Base quality check."""
-        if post.get('title', '').count('#') > 5:
-            return False
-        return True
-
-    def analyze_sentiment(self, text):
+    @staticmethod
+    def analyze_sentiment(text):
         """
-        Returns a sentiment score between -1.0 (Negative) and 1.0 (Positive).
+        Analyzes the text polarity using NLP (TextBlob).
+        Returns a float between -1.0 (Negative) and 1.0 (Positive).
         """
         if not text:
             return 0.0
-        analysis = TextBlob(text)
-        return analysis.sentiment.polarity
+        try:
+            analysis = TextBlob(text)
+            return analysis.sentiment.polarity
+        except Exception:  # pylint: disable=broad-except
+            # We catch generic exceptions here to ensure the data collection
+            # cycle never crashes due to an NLP library error.
+            return 0.0
+
+    def is_quality_content(self, post):
+        """
+        Core Quality Filter: Keywords, Score, Spam, and Language.
+        """
+        # 1. Keyword Check
+        if not post.get('keywords'):
+            return False
+
+        # 2. Basic Validity Check
+        if post.get('raw_score', 0) < 0:
+            return False
+
+        # 3. Basic Spam Filter (Too many hashtags)
+        if post.get('title', '').count('#') > 5:
+            return False
+
+        # 4. Language Validation (NLP)
+        text_to_check = (post['title'] + " " + post.get('content', ''))[:500]
+
+        if len(text_to_check) > 20:
+            try:
+                lang = detect(text_to_check)
+                if lang != 'en':
+                    return False
+            except LangDetectException:
+                pass
+
+        return True
 
     def recalculate_platform_stats(self):
         """
-        Runs the Log-Normal Z-Score algorithm specific to this platform's data.
-        Uses self.stats_config to apply platform-specific tuning.
+        The Core Algorithm: Decentralized Statistical Normalization (Z-Score).
         """
         print(f"[{self.platform_name}] Running statistical normalization...")
 
@@ -72,7 +98,6 @@ class BaseCollector(ABC):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        # 1. Fetch raw scores for THIS platform only
         cursor.execute("SELECT id, raw_score FROM unified_posts WHERE source_platform = ?", (self.platform_name,))
         rows = cursor.fetchall()
 
@@ -82,35 +107,27 @@ class BaseCollector(ABC):
 
         raw_scores = [r['raw_score'] for r in rows]
 
-        # 2. Log Transformation
-        # Using log to handle the huge variance in social metrics (Power Law)
+        # Step 1: Log Transformation
         log_scores = [math.log(s + 1, self.stats_config['log_base']) for s in raw_scores]
 
-        # 3. Calculate Distribution
+        # Step 2: Calculate Distribution
         if len(log_scores) > 1:
             mean = statistics.mean(log_scores)
             stdev = statistics.stdev(log_scores)
         else:
             mean, stdev = log_scores[0], 1.0
 
-        # Enforce Minimum Standard Deviation
         if stdev < self.stats_config['min_stdev']:
             stdev = self.stats_config['min_stdev']
 
         print(f"   -> {self.platform_name} Stats: Mean={mean:.2f}, StdDev={stdev:.2f} "
               f"(Config: Damp={self.stats_config['damping_factor']})")
 
-        # 4. Update Scores
+        # Step 3: Update Scores
         for i, row in enumerate(rows):
-            # Z-Score Calculation
             z_score = (log_scores[i] - mean) / stdev
-
-            # Apply Damping
             damped_z = z_score / self.stats_config['damping_factor']
-
-            # Sigmoid Transformation (0 to 100)
             norm_score = 100.0 / (1 + math.exp(-1.0 * (damped_z - self.stats_config['sigmoid_shift'])))
-
             final_score = max(0.0, min(99.9, norm_score))
 
             cursor.execute("UPDATE unified_posts SET trend_score = ? WHERE id = ?",
@@ -118,3 +135,8 @@ class BaseCollector(ABC):
 
         conn.commit()
         conn.close()
+
+    @abstractmethod
+    async def collect(self, client):
+        """Abstract method for data collection."""
+        pass
