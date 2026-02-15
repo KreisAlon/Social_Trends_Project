@@ -13,7 +13,7 @@ class DevToCollector(BaseCollector):
         # reach the top of the global leaderboard.
         self.stats_config.update({
             'min_stdev': 0.8,
-            'damping_factor': 2.0,  # Moderate damping
+            'damping_factor': 1.2,  # Moderate damping
             'sigmoid_shift': 0.8  # Shift curve slightly to favor high-quality content
         })
 
