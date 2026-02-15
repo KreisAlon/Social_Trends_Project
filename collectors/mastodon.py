@@ -17,8 +17,8 @@ class MastodonCollector(BaseCollector):
         # We apply high damping to prevent low-interaction posts from artificially inflating the trend score.
         self.stats_config.update({
             'min_stdev': 0.5,  # Handling low variance distributions
-            'damping_factor': 3.0,  # Aggressive damping for outliers
-            'sigmoid_shift': 1.0  # Higher threshold for "trending" status
+            'damping_factor': 1.5,  # Aggressive damping for outliers
+            'sigmoid_shift': 0.5  # Higher threshold for "trending" status
         })
 
     def is_quality_content(self, post):
