@@ -4,18 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/check_db.py" afterDir="false" />
+    <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/collectors/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/collectors/hacker_news.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/hacker_news.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/collectors/devto.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/devto.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/collectors/github.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/github.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/collectors/mastodon.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/mastodon.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tmp_network.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/ui/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ui/graph_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/graph_analyzer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ui/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ui/tmp_network.html" beforeDir="false" afterPath="$PROJECT_DIR$/ui/tmp_network.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui/network.html" beforeDir="false" afterPath="$PROJECT_DIR$/ui/network.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +27,12 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/KreisAlon/Social_Trends_Project.git",
+    "accountId": "c2a810e2-3688-4847-9faa-c9091bbc96ec"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
 }</component>
@@ -43,22 +44,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.analysis_demo.executor&quot;: &quot;Run&quot;,
-    &quot;Python.hacker_news.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_directory_selection&quot;: &quot;/Users/alonkreisberger/PycharmProjects/Social_Trends_Project/database&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.analysis_demo.executor": "Run",
+    "Python.clean_db.executor": "Run",
+    "Python.hacker_news.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_directory_selection": "/Users/alonkreisberger/PycharmProjects/Social_Trends_Project/database",
+    "to.speed.mode.migration.done": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/ui" />
@@ -80,6 +82,28 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/analysis_demo.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="clean_db" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Social_Trends_Project" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/clean_db.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -135,6 +159,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.clean_db" />
         <item itemvalue="Python.analysis_demo" />
         <item itemvalue="Python.hacker_news" />
       </list>
@@ -155,6 +180,28 @@
       <option name="presentableId" value="Default" />
       <updated>1766493480753</updated>
     </task>
+    <task id="LOCAL‎-00001" summary="- Performance: Implemented SQL 'LIMIT 40' to reduce visual noise and focus on top trends.&#10;- UX: Switched to server-side static layout calculation to prevent graph jitter (physics disabled).&#10;- Visuals: Node size now scales dynamically based on Trend Score.&#10;- NLP: Added stop-words filter to remove generic connections.&#10;- Refactor: Standardized all code comments and documentation to technical English.">
+      <option name="closed" value="true" />
+      <created>1771151401677</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL‎-00001" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771151401677</updated>
+    </task>
+    <task id="LOCAL‎-00002" summary="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon">
+      <option name="closed" value="true" />
+      <created>1771151501431</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL‎-00002" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771151501431</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="- Performance: Implemented SQL 'LIMIT 40' to reduce visual noise and focus on top trends.&#10;- UX: Switched to server-side static layout calculation to prevent graph jitter (physics disabled).&#10;- Visuals: Node size now scales dynamically based on Trend Score.&#10;- NLP: Added stop-words filter to remove generic connections.&#10;- Refactor: Standardized all code comments and documentation to technical English." />
+    <MESSAGE value="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon" />
+    <option name="LAST_COMMIT_MESSAGE" value="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon" />
   </component>
 </project>
