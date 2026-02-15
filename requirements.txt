@@ -1,3 +1,4 @@
+beautifulsoup4
 langdetect
 altair==6.0.0
 anyio==4.12.0

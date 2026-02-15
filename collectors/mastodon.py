@@ -1,7 +1,7 @@
 from datetime import datetime
 from config import KEYWORDS
 from .base import BaseCollector
-
+from bs4 import BeautifulSoup
 
 class MastodonCollector(BaseCollector):
     """
@@ -67,11 +67,16 @@ class MastodonCollector(BaseCollector):
                         # Apply Sentiment Analysis (NLP)
                         sentiment = self.analyze_sentiment(content_raw)
 
+                        # --- SMART TITLE GENERATION ---
+                        # Generate a descriptive title from the first 50 characters of the clean text.
+                        # This ensures the UI displays actual topics, not just "Toot by @user".
+                        display_title = clean_text[:80] + "..." if len(clean_text) > 80 else clean_text
+
                         post = {
                             'source_platform': self.platform_name,
                             'external_id': str(item.get('id')),
-                            'title': f"Toot by @{username}",
-                            'content': item.get('content', ''),
+                            'title': display_title,  # Now contains real content
+                            'content': clean_text,  # Save CLEAN text to DB
                             'author': username,
                             'published_at': item.get('created_at', datetime.now()),
                             'raw_score': raw_score,

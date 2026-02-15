@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon">
+    <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="feat(ui): add 'Trend Stories' engine and interactive graph inspector">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/collectors/devto.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/devto.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/collectors/github.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/github.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/check_db.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/clean_db.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/collectors/mastodon.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/mastodon.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ui/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ui/network.html" beforeDir="false" afterPath="$PROJECT_DIR$/ui/network.html" afterDir="false" />
     </list>
@@ -27,6 +28,12 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "KreisAlon"
+  }
+}]]></component>
   <component name="GithubPullRequestsUISettings"><![CDATA[{
   "selectedUrlAndAccountId": {
     "url": "https://github.com/KreisAlon/Social_Trends_Project.git",
@@ -49,6 +56,7 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.analysis_demo.executor": "Run",
     "Python.clean_db.executor": "Run",
+    "Python.fix_titles.executor": "Run",
     "Python.hacker_news.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -68,50 +76,6 @@
     </key>
   </component>
   <component name="RunManager" selected="Python.main">
-    <configuration name="analysis_demo" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Social_Trends_Project" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/analysis_demo.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="clean_db" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="Social_Trends_Project" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/clean_db.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="hacker_news" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Social_Trends_Project" />
       <option name="ENV_FILES" value="" />
@@ -159,8 +123,6 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
-        <item itemvalue="Python.clean_db" />
-        <item itemvalue="Python.analysis_demo" />
         <item itemvalue="Python.hacker_news" />
       </list>
     </recent_temporary>
@@ -196,12 +158,46 @@
       <option name="project" value="LOCAL‎" />
       <updated>1771151501431</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL‎-00003" summary="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon">
+      <option name="closed" value="true" />
+      <created>1771151549248</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL‎-00003" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771151549248</updated>
+    </task>
+    <task id="LOCAL‎-00004" summary="fix(algo): calibrate normalization parameters for microblogging platforms">
+      <option name="closed" value="true" />
+      <created>1771151625293</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL‎-00004" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771151625293</updated>
+    </task>
+    <task id="LOCAL‎-00005" summary="fix(algo): calibrate normalization parameters for microblogging platforms">
+      <option name="closed" value="true" />
+      <created>1771151649590</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL‎-00005" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771151649590</updated>
+    </task>
+    <task id="LOCAL‎-00006" summary="feat(ui): add 'Trend Stories' engine and interactive graph inspector">
+      <option name="closed" value="true" />
+      <created>1771151720116</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL‎-00006" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771151720116</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="- Performance: Implemented SQL 'LIMIT 40' to reduce visual noise and focus on top trends.&#10;- UX: Switched to server-side static layout calculation to prevent graph jitter (physics disabled).&#10;- Visuals: Node size now scales dynamically based on Trend Score.&#10;- NLP: Added stop-words filter to remove generic connections.&#10;- Refactor: Standardized all code comments and documentation to technical English." />
     <MESSAGE value="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon" />
-    <option name="LAST_COMMIT_MESSAGE" value="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon" />
+    <MESSAGE value="fix(algo): calibrate normalization parameters for microblogging platforms" />
+    <MESSAGE value="feat(ui): add 'Trend Stories' engine and interactive graph inspector" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat(ui): add 'Trend Stories' engine and interactive graph inspector" />
   </component>
 </project>
