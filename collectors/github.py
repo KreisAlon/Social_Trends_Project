@@ -1,76 +1,73 @@
-from datetime import datetime, timedelta
-from .base import BaseCollector
+import base64
+import httpx
+from collectors.base import BaseCollector
 
 
 class GitHubCollector(BaseCollector):
-    """
-    Collector for GitHub Repositories.
-    Uses the Search API to find trending AI repositories from the last 30 days.
-    """
+    def __init__(self, config):
+        super().__init__(config, "GitHub")
+        self.base_url = "https://api.github.com/search/repositories"
 
-    def __init__(self):
-        super().__init__("GitHub")
-        # GitHub stars are valuable, so we dampen them less than likes
-        self.stats_config.update({
-            'damping_factor': 1.5,
-            'log_base': 10
-        })
+    async def fetch_readme(self, client, owner, repo):
+        """
+        Fetches the README.md content for a given repository to extract deeper semantic context.
+        Returns the first 1500 characters to optimize DB storage while maintaining context.
+        """
+        url = f"https://api.github.com/repos/{owner}/{repo}/readme"
+        try:
+            response = await client.get(url)
+            if response.status_code == 200:
+                content_b64 = response.json().get('content', '')
+                # Decode Base64 content from GitHub API
+                readme_text = base64.b64decode(content_b64).decode('utf-8', errors='ignore')
+                return readme_text[:1500]
+        except Exception:
+            return ""
+        return ""
 
-    async def collect(self, client):
-        print(f"--- {self.platform_name}: Searching for trending repos... ---")
-        posts = []
+    async def collect(self, client: httpx.AsyncClient):
+        # Querying for high-impact AI/ML repositories
+        query = "topic:ai OR topic:machine-learning OR topic:llm"
+        params = {
+            "q": query,
+            "sort": "stars",
+            "order": "desc",
+            "per_page": self.config.get('per_page', 30)
+        }
 
-        # We look for repos created or updated in the last 3 months to ensure relevance
-        date_since = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+        try:
+            response = await client.get(self.base_url, params=params)
+            response.raise_for_status()
+            data = response.json()
 
-        # Search queries focused on current hot topics
-        queries = [
-            f"topic:ai created:>{date_since} sort:stars",
-            f"topic:llm created:>{date_since} sort:stars",
-            f"topic:agent created:>{date_since} sort:stars"
-        ]
+            posts = []
+            for item in data.get('items', []):
+                owner = item['owner']['login']
+                repo_name = item['name']
 
-        for query in queries:
-            url = f"https://api.github.com/search/repositories?q={query}&per_page=15"
+                # Fetch deeper content (README) asynchronously
+                readme_content = await self.fetch_readme(client, owner, repo_name)
 
-            try:
-                resp = await client.get(url)
-                if resp.status_code == 200:
-                    items = resp.json().get('items', [])
+                # Merge description and README for rich semantic analysis
+                description = item.get('description', '') or ''
+                full_content = f"{description}\n\n{readme_content}".strip()
 
-                    for item in items:
-                        # Skip if no description
-                        description = item.get('description', '') or ''
+                post = {
+                    'source_platform': self.platform_name,
+                    'external_id': str(item['id']),
+                    'title': repo_name,
+                    'content': full_content,
+                    'author': owner,
+                    'url': item['html_url'],
+                    'raw_score': item['stargazers_count'],
+                    'published_at': item['updated_at']
+                }
 
-                        # Combine title and description for keyword extraction
-                        full_text = f"{item['name']} {description}"
-                        found_keys = self.extract_keywords(full_text)
+                # Filter out low-quality or irrelevant repositories
+                if self.is_quality_content(post):
+                    posts.append(post)
 
-                        if found_keys:
-                            # Normalize stars as the raw score
-                            stars = item.get('stargazers_count', 0)
-
-                            post = {
-                                'source_platform': self.platform_name,
-                                'external_id': str(item['id']),
-                                'title': item['name'],
-                                'content': description,
-                                'author': item['owner']['login'],
-                                'published_at': item.get('created_at', datetime.now()),
-                                'raw_score': stars,
-                                'sentiment': self.analyze_sentiment(description),
-                                'url': item.get('html_url', ''),
-                                'keywords': found_keys
-                            }
-
-                            # Additional filter: Must have at least 50 stars to be considered "Trending"
-                            if stars > 50:
-                                posts.append(post)
-                                print(f"   [GitHub] Found: {post['title']} (⭐ {stars})")
-
-            except Exception as e:
-                print(f"Error fetching from GitHub: {e}")
-
-        # Remove duplicates from multiple queries
-        unique_posts = {p['external_id']: p for p in posts}.values()
-        return list(unique_posts)
+            return posts
+        except Exception as e:
+            print(f"Error collecting from GitHub: {e}")
+            return []
