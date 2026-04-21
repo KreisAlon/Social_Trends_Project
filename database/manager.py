@@ -1,128 +1,97 @@
 import sqlite3
-import os
-
-# --- Path Configuration ---
-# We determine the database path relative to this file to ensure consistency
-# regardless of where the script is run from.
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
-DB_PATH = os.path.join(PROJECT_ROOT, "trends_project.db")
+import json
+import numpy as np
+from datetime import datetime
+from sentence_transformers import SentenceTransformer
 
 
-class TrendManager:
-    """
-    Database Abstraction Layer (DAL).
-    Handles all SQLite operations: connection, table creation, insertion, and retrieval.
-    """
+class DatabaseManager:
+    def __init__(self, db_path="trends_project.db"):
+        self.db_path = db_path
 
-    def __init__(self):
-        self.db_path = DB_PATH
+        # Initialize the NLP model for semantic embeddings
+        # 'all-MiniLM-L6-v2' is a fast and accurate model for sentence similarity
+        print("🧠 Loading NLP Model for semantic analysis...")
+        self.nlp_model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("✅ NLP Model Loaded Successfully!")
+
         self._init_db()
 
     def _init_db(self):
-        """
-        Initializes the database schema.
-        Creates the 'unified_posts' table if it does not exist.
-        """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        # Create the main table with a unique constraint on (source_platform, external_id)
-        # to prevent duplicates.
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS unified_posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_platform TEXT,
-                external_id TEXT,
-                title TEXT,
-                content TEXT,
-                author TEXT,
-                published_at TIMESTAMP,
-                raw_score INTEGER,
-                trend_score REAL DEFAULT 0.0,
-                sentiment REAL DEFAULT 0.0,
-                url TEXT,
-                found_keywords TEXT,
-                UNIQUE(source_platform, external_id)
-            )
-        ''')
-        conn.commit()
-        conn.close()
-        print("[Manager] Database Ready.")
+        """Initializes the database schema with support for semantic embeddings."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS unified_posts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source_platform TEXT,
+                    external_id TEXT,
+                    title TEXT,
+                    content TEXT,
+                    author TEXT,
+                    url TEXT,
+                    raw_score REAL,
+                    trend_score REAL,
+                    published_at TEXT,
+                    collected_at TEXT,
+                    embedding TEXT, -- Stores the high-dimensional vector as a JSON string
+                    UNIQUE(source_platform, external_id)
+                )
+            ''')
+            conn.commit()
 
     def save_posts(self, posts):
-        """
-        Batch inserts or updates posts in the database.
-
-        Args:
-            posts (list): A list of dictionaries containing post data.
-        """
+        """Processes and saves posts with calculated semantic embeddings."""
         if not posts:
-            return
+            return 0
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        added_count = 0
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            collected_at = datetime.now().isoformat()
 
-        for post in posts:
-            # Convert keyword list to string for storage
-            keywords_str = ",".join(post.get('keywords', []))
+            for post in posts:
+                try:
+                    # Generate semantic embedding based on Title and Content combined
+                    text_to_embed = f"{post.get('title', '')}. {post.get('content', '')}"
 
-            # Use INSERT OR IGNORE to skip duplicates efficiently.
-            # In a production environment, we might use UPSERT (ON CONFLICT UPDATE)
-            # to update scores of existing posts.
-            cursor.execute('''
-                INSERT OR IGNORE INTO unified_posts 
-                (source_platform, external_id, title, content, author, published_at, raw_score, sentiment, url, found_keywords)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                post['source_platform'],
-                post['external_id'],
-                post['title'],
-                post['content'],
-                post['author'],
-                post['published_at'],
-                post['raw_score'],
-                post['sentiment'],
-                post['url'],
-                keywords_str
-            ))
+                    # Compute the vector (384 dimensions for this model)
+                    embedding_vector = self.nlp_model.encode(text_to_embed)
 
-            # If the post exists, we update its raw_score and sentiment to keep it fresh
-            cursor.execute('''
-                UPDATE unified_posts 
-                SET raw_score = ?, sentiment = ?
-                WHERE source_platform = ? AND external_id = ?
-            ''', (
-                post['raw_score'],
-                post['sentiment'],
-                post['source_platform'],
-                post['external_id']
-            ))
+                    # Convert numpy array to JSON string for SQLite storage
+                    embedding_json = json.dumps(embedding_vector.tolist())
 
-        conn.commit()
-        conn.close()
-        # print(f"[Manager] Saved/Updated {len(posts)} items.")
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO unified_posts (
+                            source_platform, external_id, title, content, 
+                            author, url, raw_score, trend_score, 
+                            published_at, collected_at, embedding
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        post['source_platform'],
+                        post['external_id'],
+                        post['title'],
+                        post['content'],
+                        post['author'],
+                        post['url'],
+                        post['raw_score'],
+                        post.get('trend_score', 0),
+                        post['published_at'],
+                        collected_at,
+                        embedding_json
+                    ))
+                    if cursor.rowcount > 0:
+                        added_count += 1
+                except Exception as e:
+                    print(f"Error saving post {post.get('external_id')}: {e}")
 
-    def get_top_trends(self, limit=15):
-        """
-        Retrieves the top trending posts sorted by the calculated Trend Score.
+            conn.commit()
+        return added_count
 
-        Args:
-            limit (int): Number of posts to return.
-
-        Returns:
-            list: List of sqlite3.Row objects (access columns by name).
-        """
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row  # Allows accessing columns by name (row['title'])
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            SELECT * FROM unified_posts 
-            ORDER BY trend_score DESC 
-            LIMIT ?
-        ''', (limit,))
-
-        rows = cursor.fetchall()
-        conn.close()
-        return rows
+    def get_all_posts(self):
+        """Retrieves all posts from the database."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM unified_posts ORDER BY trend_score DESC')
+            return [dict(row) for row in cursor.fetchall()]
