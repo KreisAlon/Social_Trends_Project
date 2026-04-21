@@ -1,92 +1,66 @@
+import httpx
 from datetime import datetime
-from config import KEYWORDS, TEXT_PREVIEW_LENGTH
+from config import KEYWORDS
 from .base import BaseCollector
-
-
-def _is_english(text):
-    """
-    Fast ASCII-based heuristic to filter out non-English titles
-    before invoking the heavy NLP model.
-    """
-    try:
-        text.encode('utf-8').decode('ascii')
-        return True
-    except UnicodeDecodeError:
-        return False
+from bs4 import BeautifulSoup
 
 
 class HackerNewsCollector(BaseCollector):
-    """
-    Collector for YCombinator's Hacker News.
-    Targets high-quality technical discussions and industry news.
-    """
-
     def __init__(self):
         super().__init__("Hacker News")
+        self.stats_config.update({'min_stdev': 0.8, 'damping_factor': 1.2, 'sigmoid_shift': 0.8})
 
-        # --- Statistical Tuning ---
-        # HN uses a weighted voting algorithm. Scores can be high but not as inflated as GitHub stars.
-        self.stats_config.update({
-            'min_stdev': 0.8,
-            'damping_factor': 1.2,  # Slight damping to normalize against GitHub
-            'sigmoid_shift': 0.5
-        })
+    async def fetch_link_content(self, client, url):
+        """Extracts text content from the shared external link."""
+        if not url or "news.ycombinator.com" in url: return ""
+        try:
+            resp = await client.get(url, timeout=10.0)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                # Remove script and style elements
+                for script in soup(["script", "style"]): script.decompose()
+                text = soup.get_text(separator=' ')
+                return " ".join(text.split())[:2000]  # Limit to 2000 chars
+        except:
+            return ""
+        return ""
 
-    def is_quality_content(self, post):
-        # Filter: Ignore items with very low traction as they are likely noise.
-        # Since we fetch 'Top Stories', most items should pass this.
-        if post['raw_score'] < 5:
-            return False
-        return super().is_quality_content(post)
-
-    async def collect(self, client):
-        print(f"--- {self.platform_name}: Querying Top Stories... ---")
+    async def collect(self, client: httpx.AsyncClient):
+        print(f"--- {self.platform_name}: Querying Top Stories & Extracting Links... ---")
         posts = []
         try:
-            # API Strategy: 'topstories' returns IDs of the current front page.
-            # This ensures high relevance compared to 'newstories'.
-            resp = await client.get('https://hacker-news.firebaseio.com/v0/topstories.json')
-            ids = resp.json()[:80]  # Processing the top 80 items
+            top_resp = await client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
+            top_ids = top_resp.json()[:30]  # Focus on top 30 for quality
 
-            for sid in ids:
-                item_resp = await client.get(f'https://hacker-news.firebaseio.com/v0/item/{sid}.json')
-                data = item_resp.json()
+            for story_id in top_ids:
+                item_resp = await client.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json")
+                item = item_resp.json()
+                if not item or item.get('type') != 'story': continue
 
-                if data and data.get('type') == 'story':
-                    title = data.get('title', '')
+                title = item.get('title', '')
+                url = item.get('url', '')
 
-                    # Pre-filter non-English titles
-                    if not _is_english(title):
-                        continue
+                # Fetch full content from the link instead of relying on empty 'text' field
+                link_content = await self.fetch_link_content(client, url)
+                full_context = f"{title}. {link_content}"
 
-                    text = data.get('text', '') or ''
-                    # Combine title and intro for keyword extraction context
-                    combined_text = (title + " " + text[:TEXT_PREVIEW_LENGTH]).lower()
-
-                    found_keys = self.extract_keywords(combined_text)
-                    if found_keys:
-                        raw_score = data.get('score', 0)
-
-                        # NLP Sentiment Analysis
-                        sentiment = self.analyze_sentiment(title + " " + text)
-
-                        post = {
-                            'source_platform': self.platform_name,
-                            'external_id': str(data.get('id')),
-                            'title': title,
-                            'content': text,
-                            'author': data.get('by', ''),
-                            'published_at': datetime.fromtimestamp(data.get('time', 0)),
-                            'raw_score': raw_score,
-                            'sentiment': sentiment,
-                            'url': data.get('url', f"https://news.ycombinator.com/item?id={data.get('id')}"),
-                            'keywords': found_keys
-                        }
-
-                        if self.is_quality_content(post):
-                            posts.append(post)
-                            print(f"   [HN] Ingested: {title[:30]}...")
-
+                found_keys = self.extract_keywords(full_context.lower())
+                if found_keys:
+                    post = {
+                        'source_platform': self.platform_name,
+                        'external_id': str(item['id']),
+                        'title': title,
+                        'content': link_content if link_content else title,
+                        'author': item.get('by', 'unknown'),
+                        'published_at': datetime.fromtimestamp(item.get('time', 0)).isoformat(),
+                        'raw_score': item.get('score', 0),
+                        'sentiment': self.analyze_sentiment(full_context),
+                        'url': url if url else f"https://news.ycombinator.com/item?id={story_id}",
+                        'keywords': found_keys
+                    }
+                    if self.is_quality_content(post):
+                        posts.append(post)
+                        print(f"   [HN] Ingested with Full Link Content: {title}")
         except Exception as e:
-            print(f"Connection Error {self.platform_name}: {e}")
+            print(f"Error HN: {e}")
         return posts

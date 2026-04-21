@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="feat(ui): add 'Trend Stories' engine and interactive graph inspector">
+    <list default="true" id="1a78bb3c-7bd2-42d7-8c96-350d94e061e6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/check_db.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/clean_db.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/collectors/mastodon.py" beforeDir="false" afterPath="$PROJECT_DIR$/collectors/mastodon.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ui/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ui/network.html" beforeDir="false" afterPath="$PROJECT_DIR$/ui/network.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -40,6 +36,9 @@
     "accountId": "c2a810e2-3688-4847-9faa-c9091bbc96ec"
   }
 }]]></component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
 }</component>
@@ -190,7 +189,31 @@
       <option name="project" value="LOCAL‎" />
       <updated>1771151720116</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL‎-00007" summary="feat(ui/core): implement 'Trend Galaxy' visualization and real-time alert system&#10;&#10;- Replaced network graph with interactive Sunburst (Galaxy) chart for better hierarchy.&#10;- Implemented real-time anomaly detection and UI alert banners.&#10;- Added BeautifulSoup-based HTML cleaning pipeline for all social collectors.&#10;- Improved 'Quick Inspector' for deep-dive topic analysis.&#10;- Optimized data loading and fixed title generation for Mastodon posts.">
+      <option name="closed" value="true" />
+      <created>1771154606622</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL‎-00007" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771154606622</updated>
+    </task>
+    <task id="LOCAL‎-00008" summary="feat(ui/core): implement 'Trend Galaxy' visualization and real-time alert system&#10;&#10;- Replaced network graph with interactive Sunburst (Galaxy) chart for better hierarchy.&#10;- Implemented real-time anomaly detection and UI alert banners.&#10;- Added BeautifulSoup-based HTML cleaning pipeline for all social collectors.&#10;- Improved 'Quick Inspector' for deep-dive topic analysis.&#10;- Optimized data loading and fixed title generation for Mastodon posts.">
+      <option name="closed" value="true" />
+      <created>1771154621185</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL‎-00008" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771154621185</updated>
+    </task>
+    <task id="LOCAL‎-00009" summary="feat(ui): finalize interactive dashboard with deep intelligence and UX polish&#10;&#10;- Implemented clickable source links and visual score indicators in the leaderboard.&#10;- Expanded the 'Quick Inspector' with detailed AI conceptual definitions and direct action buttons.&#10;- Refined Sunburst Galaxy hover metrics to eliminate redundant category scoring.&#10;- Finalized cross-platform narrative detection with full source linking.&#10;- Resolved all static type-checking warnings for cleaner, more stable code.">
+      <option name="closed" value="true" />
+      <created>1771156986871</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL‎-00009" />
+      <option name="project" value="LOCAL‎" />
+      <updated>1771156986871</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -198,6 +221,8 @@
     <MESSAGE value="File for clean the Database, to clear all the older posts, and the unnecessary posts from mastodon" />
     <MESSAGE value="fix(algo): calibrate normalization parameters for microblogging platforms" />
     <MESSAGE value="feat(ui): add 'Trend Stories' engine and interactive graph inspector" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat(ui): add 'Trend Stories' engine and interactive graph inspector" />
+    <MESSAGE value="feat(ui/core): implement 'Trend Galaxy' visualization and real-time alert system&#10;&#10;- Replaced network graph with interactive Sunburst (Galaxy) chart for better hierarchy.&#10;- Implemented real-time anomaly detection and UI alert banners.&#10;- Added BeautifulSoup-based HTML cleaning pipeline for all social collectors.&#10;- Improved 'Quick Inspector' for deep-dive topic analysis.&#10;- Optimized data loading and fixed title generation for Mastodon posts." />
+    <MESSAGE value="feat(ui): finalize interactive dashboard with deep intelligence and UX polish&#10;&#10;- Implemented clickable source links and visual score indicators in the leaderboard.&#10;- Expanded the 'Quick Inspector' with detailed AI conceptual definitions and direct action buttons.&#10;- Refined Sunburst Galaxy hover metrics to eliminate redundant category scoring.&#10;- Finalized cross-platform narrative detection with full source linking.&#10;- Resolved all static type-checking warnings for cleaner, more stable code." />
+    <option name="LAST_COMMIT_MESSAGE" value="feat(ui): finalize interactive dashboard with deep intelligence and UX polish&#10;&#10;- Implemented clickable source links and visual score indicators in the leaderboard.&#10;- Expanded the 'Quick Inspector' with detailed AI conceptual definitions and direct action buttons.&#10;- Refined Sunburst Galaxy hover metrics to eliminate redundant category scoring.&#10;- Finalized cross-platform narrative detection with full source linking.&#10;- Resolved all static type-checking warnings for cleaner, more stable code." />
   </component>
 </project>
