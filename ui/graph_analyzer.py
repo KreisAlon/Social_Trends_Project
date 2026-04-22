@@ -1,115 +1,108 @@
 import networkx as nx
 import sqlite3
 import os
+import json
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 # --- Path Configuration ---
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(CURRENT_DIR)
-DB_PATH = os.path.join(BASE_DIR, "trends_project.db")
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR) if "ui" in CURRENT_DIR else CURRENT_DIR
+DB_PATH = os.path.join(PROJECT_ROOT, "trends_project.db")
 
-# Platform Color Coding for Visualization
 PLATFORM_COLORS = {
-    "GitHub": "#2dba4e",  # Green
-    "Hacker News": "#ff6600",  # Orange
-    "Mastodon": "#6364ff",  # Purple
-    "Dev.to": "#000000"  # Black
-}
-
-# Stop-words to filter out generic connections
-GENERIC_KEYWORDS = {
-    'ai', 'artificial intelligence', 'machine learning', 'genai', 'generative ai',
-    'llm', 'gpt', 'tool', 'code', 'data', 'model', 'new', 'app', 'python', 'project',
-    'using', 'via', 'show', 'hn', 'launch', 'release', 'agent', 'agents',
-    'source', 'open', 'web', 'chat', 'bot', 'system', 'learning'
+    "GitHub": "#2dba4e",
+    "Hacker News": "#ff6600",
+    "Mastodon": "#7c6ff7",
+    "Dev.to": "#333333"
 }
 
 
 class GraphBuilder:
     """
-    Constructs a semantic network graph from trending posts.
-    Nodes represent posts, and edges represent shared topics/keywords.
+    Constructs a semantic knowledge graph.
+    Optimized for circular/spiral layouts and cross-platform discovery.
     """
 
-    def __init__(self):
+    def __init__(self, cross_threshold=0.55, same_threshold=0.85):
+        self.cross_threshold = cross_threshold
+        self.same_threshold = same_threshold
         self.graph = nx.Graph()
 
     def build_graph(self):
-        """
-        Fetches top trends from the database and builds the NetworkX graph.
-        Returns:
-            nx.Graph: The constructed graph object with metadata.
-        """
         if not os.path.exists(DB_PATH):
             return self.graph
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # --- VIP Filter: Top 40 Only ---
-        # limiting to top 40 items ensures the graph remains readable and performant.
-        cursor.execute('''
-            SELECT id, title, source_platform, found_keywords, trend_score, content
-            FROM unified_posts 
-            ORDER BY trend_score DESC
-            LIMIT 40
-        ''')
-        rows = cursor.fetchall()
+        # --- BALANCED SAMPLING (Anti-GitHub Bias) ---
+        platforms = ["GitHub", "Hacker News", "Dev.to", "Mastodon"]
+        all_rows = []
+        for p in platforms:
+            cursor.execute('''
+                SELECT id, title, source_platform, trend_score, embedding, url
+                FROM unified_posts 
+                WHERE source_platform = ? AND embedding IS NOT NULL
+                ORDER BY trend_score DESC LIMIT 15
+            ''', (p,))
+            all_rows.extend(cursor.fetchall())
         conn.close()
 
-        # Step 1: Add Nodes (Vertices)
-        for row in rows:
-            post_id, title, platform, keywords_str, score, content = row
+        if not all_rows: return self.graph
 
-            # Parse and filter keywords
-            keywords = [k.strip().lower() for k in keywords_str.split(',')] if keywords_str else []
-            strong_keywords_list = [k for k in keywords if k not in GENERIC_KEYWORDS]
+        nodes_info, embeddings = [], []
 
-            node_color = PLATFORM_COLORS.get(platform, "#808080")
+        # --- Step 1: Node Creation ---
+        for row in all_rows:
+            p_id, title, platform, score, emb_str, url = row
+            try:
+                emb = json.loads(emb_str)
+                nodes_info.append({'id': p_id, 'platform': platform, 'title': title, 'url': url})
+                embeddings.append(emb)
 
-            # Truncate title for display label
-            short_label = title[:15] + "..." if len(title) > 15 else title
+                self.graph.add_node(
+                    p_id,
+                    label=(title[:20] + '...') if len(title) > 20 else title,
+                    title=f"<b>{title}</b><br>Source: {platform}",
+                    color=PLATFORM_COLORS.get(platform, "#888"),
+                    value=max(score * 0.8, 12),
+                    group=platform
+                )
+            except Exception:
+                continue
 
-            # Create rich HTML tooltip
-            hover_text = (f"<b>{title}</b><br>"
-                          f"<span style='color: gray;'>{platform} | Score: {score:.1f}</span><br>"
-                          f"Keywords: {', '.join(strong_keywords_list[:3])}")
+        # --- Step 2: Semantic Linking (Fixed KeyError) ---
+        if len(embeddings) > 1:
+            emb_matrix = np.array(embeddings)
+            sim_matrix = cosine_similarity(emb_matrix)
 
-            # Dynamic node sizing based on Trend Score (Visual Hierarchy)
-            node_size = score * 0.8
+            for i in range(len(nodes_info)):
+                for j in range(i + 1, len(nodes_info)):
+                    sim_score = float(sim_matrix[i][j])
+                    p1, p2 = nodes_info[i]['platform'], nodes_info[j]['platform']
+                    is_cross = p1 != p2
 
-            self.graph.add_node(post_id,
-                                label=short_label,
-                                title=hover_text,
-                                color=node_color,
-                                value=node_size,
-                                group=platform,
-                                strong_keys=strong_keywords_list)
+                    # Apply dynamic threshold
+                    threshold = self.cross_threshold if is_cross else self.same_threshold
 
-            # Step 2: Add Edges (Semantic Connections)
-        nodes = list(self.graph.nodes(data=True))
-        for i in range(len(nodes)):
-            for j in range(i + 1, len(nodes)):
-                id1, data1 = nodes[i]
-                id2, data2 = nodes[j]
+                    if sim_score >= threshold:
+                        # CRITICAL: Always setting 'weight' to avoid KeyError in app.py
+                        self.graph.add_edge(
+                            nodes_info[i]['id'], nodes_info[j]['id'],
+                            weight=sim_score,
+                            value=(sim_score - threshold + 0.1) * 15,
+                            color="#4a90e2" if is_cross else "#d3d3d3",
+                            title=f"Semantic Match: {sim_score * 100:.1f}%",
+                            is_cross=is_cross
+                        )
 
-                # Calculate intersection of keywords
-                shared = set(data1['strong_keys']) & set(data2['strong_keys'])
-
-                # Create an edge only if a strong semantic link exists
-                if len(shared) >= 1:
-                    width = len(shared) * 2  # Edge thickness indicates connection strength
-                    self.graph.add_edge(id1, id2, value=width, title=f"Shared: {list(shared)}")
-
-        # --- Static Layout Algorithm ---
-        # Pre-calculating positions to prevent graph jittering in the UI
+        # --- Step 3: Circular/Spiral Layout Pre-calculation ---
         if self.graph.number_of_nodes() > 0:
-            # Spring layout simulation
-            pos = nx.spring_layout(self.graph, seed=42, k=1.5, iterations=100)
-
-            for node, cords in pos.items():
-                # Scale coordinates for PyVis visualization
-                self.graph.nodes[node]['x'] = cords[0] * 1000
-                self.graph.nodes[node]['y'] = cords[1] * 1000
-                self.graph.nodes[node]['physics'] = False  # Lock positions
+            # Using circular_layout for that "Wheel" feel
+            pos = nx.circular_layout(self.graph, scale=1000)
+            for node, coords in pos.items():
+                self.graph.nodes[node]['x'], self.graph.nodes[node]['y'] = coords[0], coords[1]
+                self.graph.nodes[node]['physics'] = False
 
         return self.graph

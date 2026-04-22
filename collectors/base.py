@@ -77,44 +77,61 @@ class BaseCollector(ABC):
         return True
 
     def recalculate_platform_stats(self):
-        print(f"[{self.platform_name}] Running statistical normalization...")
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        """
+        Recalculates the statistical mean and standard deviation for the platform.
+        Applies Logarithmic (Log10) scaling to platforms with extreme outliers (e.g., GitHub)
+        to prevent them from dominating the global trend ranking.
+        """
+        import math
+        import sqlite3
+        import numpy as np
 
-        cursor.execute("SELECT id, raw_score FROM unified_posts WHERE source_platform = ?", (self.platform_name,))
-        rows = cursor.fetchall()
+        with sqlite3.connect("trends_project.db") as conn:
+            cursor = conn.cursor()
 
-        if not rows:
+            # Step 1: Fetch all raw scores for this specific platform
+            cursor.execute('SELECT id, raw_score FROM unified_posts WHERE source_platform = ?', (self.platform_name,))
+            rows = cursor.fetchall()
+
+            if not rows:
+                return
+
+            # Step 2: Apply Log10 scaling ONLY for GitHub to compress astronomical star counts
+            # (e.g., 100,000 stars becomes ~5.0, making it comparable to other platforms)
+            processed_scores = []
+            for row in rows:
+                score = row[1]
+                if self.platform_name == "GitHub":
+                    score = math.log10(score + 1) if score > 0 else 0
+                processed_scores.append(score)
+
+            # Step 3: Calculate Statistical Mean and Standard Deviation
+            mean = np.mean(processed_scores)
+            std_dev = np.std(processed_scores)
+
+            # Avoid division by zero if all scores are identical
+            if std_dev == 0:
+                std_dev = 1.0
+
+            print(f"   -> {self.platform_name} Stats: Mean={mean:.2f}, StdDev={std_dev:.2f}")
+
+            # Step 4: Calculate Z-Score and apply Sigmoid function for the final Trend Score (0-100)
+            damp = self.stats_config.get('damping_factor', 1.0)
+
+            for row, scaled_score in zip(rows, processed_scores):
+                post_id = row[0]
+
+                # Z-Score measures how many standard deviations the score is from the mean
+                z_score = (scaled_score - mean) / (std_dev * damp)
+
+                # Sigmoid function normalizes the score to a beautiful 0 to 100 scale
+                trend_score = (1 / (1 + math.exp(-z_score))) * 100
+
+                # Step 5: Update the database with the normalized score
+                cursor.execute('UPDATE unified_posts SET trend_score = ? WHERE id = ?', (trend_score, post_id))
+
+            conn.commit()
             conn.close()
-            return
-
-        raw_scores = [r['raw_score'] for r in rows]
-        log_scores = [math.log(s + 1, self.stats_config['log_base']) for s in raw_scores]
-
-        if len(log_scores) > 1:
-            mean = statistics.mean(log_scores)
-            stdev = statistics.stdev(log_scores)
-        else:
-            mean, stdev = log_scores[0], 1.0
-
-        if stdev < self.stats_config['min_stdev']:
-            stdev = self.stats_config['min_stdev']
-
-        print(f"   -> {self.platform_name} Stats: Mean={mean:.2f}, StdDev={stdev:.2f} "
-              f"(Config: Damp={self.stats_config['damping_factor']})")
-
-        for i, row in enumerate(rows):
-            z_score = (log_scores[i] - mean) / stdev
-            damped_z = z_score / self.stats_config['damping_factor']
-            norm_score = 100.0 / (1 + math.exp(-1.0 * (damped_z - self.stats_config['sigmoid_shift'])))
-            final_score = max(0.0, min(99.9, norm_score))
-
-            cursor.execute("UPDATE unified_posts SET trend_score = ? WHERE id = ?",
-                           (round(final_score, 1), row['id']))
-
-        conn.commit()
-        conn.close()
 
     @abstractmethod
     async def collect(self, client):
