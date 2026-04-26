@@ -1,66 +1,67 @@
 import httpx
-from datetime import datetime
-from config import KEYWORDS
-from .base import BaseCollector
 from bs4 import BeautifulSoup
+from collectors.base import BaseCollector
+from config import MAX_POSTS_PER_PLATFORM
 
 
 class HackerNewsCollector(BaseCollector):
+    """
+    Collector for Hacker News.
+    Crawls external links to provide rich semantic content for NLP analysis.
+    """
+
     def __init__(self):
         super().__init__("Hacker News")
-        self.stats_config.update({'min_stdev': 0.8, 'damping_factor': 1.2, 'sigmoid_shift': 0.8})
+        self.top_stories_url = "https://hacker-news.firebaseio.com/v0/topstories.json"
+        self.item_url = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 
-    async def fetch_link_content(self, client, url):
-        """Extracts text content from the shared external link."""
+    async def scrape_external_link(self, client, url):
+        """Extracts readable text from external websites shared on HN."""
         if not url or "news.ycombinator.com" in url: return ""
         try:
             resp = await client.get(url, timeout=10.0)
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, 'html.parser')
-                # Remove script and style elements
-                for script in soup(["script", "style"]): script.decompose()
-                text = soup.get_text(separator=' ')
-                return " ".join(text.split())[:2000]  # Limit to 2000 chars
+                # Remove non-text elements
+                for s in soup(["script", "style", "nav", "footer"]): s.decompose()
+                return soup.get_text(separator=' ')[:2000]  # Limit to 2000 chars
         except:
             return ""
         return ""
 
     async def collect(self, client: httpx.AsyncClient):
-        print(f"--- {self.platform_name}: Querying Top Stories & Extracting Links... ---")
+        print(f"--- {self.platform_name}: Crawling External Stories... ---")
         posts = []
         try:
-            top_resp = await client.get("https://hacker-news.firebaseio.com/v0/topstories.json")
-            top_ids = top_resp.json()[:30]  # Focus on top 30 for quality
+            response = await client.get(self.top_stories_url)
+            if response.status_code != 200: return []
 
-            for story_id in top_ids:
-                item_resp = await client.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json")
-                item = item_resp.json()
-                if not item or item.get('type') != 'story': continue
+            story_ids = response.json()[:MAX_POSTS_PER_PLATFORM]
 
-                title = item.get('title', '')
-                url = item.get('url', '')
+            for sid in story_ids:
+                item_res = await client.get(self.item_url.format(sid))
+                if item_res.status_code == 200:
+                    item = item_res.json()
+                    url = item.get('url', '')
 
-                # Fetch full content from the link instead of relying on empty 'text' field
-                link_content = await self.fetch_link_content(client, url)
-                full_context = f"{title}. {link_content}"
+                    # CRAWL: Go get the actual content from the article link
+                    external_text = await self.scrape_external_link(client, url)
+                    content = external_text if external_text else item.get('text', item.get('title'))
 
-                found_keys = self.extract_keywords(full_context.lower())
-                if found_keys:
                     post = {
                         'source_platform': self.platform_name,
-                        'external_id': str(item['id']),
-                        'title': title,
-                        'content': link_content if link_content else title,
+                        'external_id': str(sid),
+                        'title': item.get('title', ''),
+                        'content': content,
                         'author': item.get('by', 'unknown'),
-                        'published_at': datetime.fromtimestamp(item.get('time', 0)).isoformat(),
+                        'url': url if url else f"https://news.ycombinator.com/item?id={sid}",
                         'raw_score': item.get('score', 0),
-                        'sentiment': self.analyze_sentiment(full_context),
-                        'url': url if url else f"https://news.ycombinator.com/item?id={story_id}",
-                        'keywords': found_keys
+                        'sentiment': self.analyze_sentiment(content),
+                        'published_at': item.get('time', '')
                     }
                     if self.is_quality_content(post):
                         posts.append(post)
-                        print(f"   [HN] Ingested with Full Link Content: {title}")
+            return posts
         except Exception as e:
             print(f"Error HN: {e}")
-        return posts
+            return []

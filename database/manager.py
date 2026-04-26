@@ -45,7 +45,7 @@ class TrendManager:
         self._init_db()
 
     def _init_db(self):
-        """Initializes the schema with support for scores and semantic embeddings."""
+        """Initializes the schema with support for scores, dynamic keywords, and semantic embeddings."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -61,7 +61,8 @@ class TrendManager:
                     trend_score REAL,
                     published_at TEXT,
                     collected_at TEXT,
-                    embedding TEXT, -- High-dimensional vector stored as JSON
+                    keywords TEXT,      -- Stores extracted dynamic entities as JSON
+                    embedding TEXT,     -- High-dimensional vector stored as JSON
                     UNIQUE(source_platform, external_id)
                 )
             ''')
@@ -88,12 +89,15 @@ class TrendManager:
                     # Convert the vector to a JSON string for storage
                     embedding_json = json.dumps(embedding_vector.tolist())
 
+                    # Convert keyword list to JSON string for database storage
+                    keywords_json = json.dumps(post.get('keywords', []))
+
                     cursor.execute('''
                         INSERT OR IGNORE INTO unified_posts (
                             source_platform, external_id, title, content, 
                             author, url, raw_score, trend_score, 
-                            published_at, collected_at, embedding
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            published_at, collected_at, keywords, embedding
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
                         post['source_platform'],
                         post['external_id'],
@@ -105,6 +109,7 @@ class TrendManager:
                         post.get('trend_score', 0),
                         post['published_at'],
                         collected_at,
+                        keywords_json,
                         embedding_json
                     ))
                     if cursor.rowcount > 0:

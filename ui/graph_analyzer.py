@@ -10,6 +10,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR) if "ui" in CURRENT_DIR else CURRENT_DIR
 DB_PATH = os.path.join(PROJECT_ROOT, "trends_project.db")
 
+# Platform UI Branding Colors
 PLATFORM_COLORS = {
     "GitHub": "#2dba4e",
     "Hacker News": "#ff6600",
@@ -20,23 +21,24 @@ PLATFORM_COLORS = {
 
 class GraphBuilder:
     """
-    Constructs a semantic knowledge graph.
-    Optimized for circular/spiral layouts and cross-platform discovery.
+    Constructs a semantic knowledge graph from database embeddings.
+    Designed for circular/spiral visualizations and cross-platform discovery.
     """
 
-    def __init__(self, cross_threshold=0.55, same_threshold=0.85):
+    def __init__(self, cross_threshold=0.55, same_platform_threshold=0.85):
         self.cross_threshold = cross_threshold
-        self.same_threshold = same_threshold
+        self.same_threshold = same_platform_threshold
         self.graph = nx.Graph()
 
     def build_graph(self):
+        """Builds the network graph by calculating semantic similarity between posts."""
         if not os.path.exists(DB_PATH):
             return self.graph
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # --- BALANCED SAMPLING (Anti-GitHub Bias) ---
+        # Balanced Sampling: Fetching top trends per platform to avoid bias
         platforms = ["GitHub", "Hacker News", "Dev.to", "Mastodon"]
         all_rows = []
         for p in platforms:
@@ -53,7 +55,7 @@ class GraphBuilder:
 
         nodes_info, embeddings = [], []
 
-        # --- Step 1: Node Creation ---
+        # --- Step 1: Intelligent Node Creation ---
         for row in all_rows:
             p_id, title, platform, score, emb_str, url = row
             try:
@@ -64,15 +66,15 @@ class GraphBuilder:
                 self.graph.add_node(
                     p_id,
                     label=(title[:20] + '...') if len(title) > 20 else title,
-                    title=f"<b>{title}</b><br>Source: {platform}",
+                    title=f"<b>{title}</b><br>Source: {platform}<br>Trend: {score:.1f}",
                     color=PLATFORM_COLORS.get(platform, "#888"),
                     value=max(score * 0.8, 12),
                     group=platform
                 )
-            except Exception:
+            except (json.JSONDecodeError, TypeError, Exception):
                 continue
 
-        # --- Step 2: Semantic Linking (Fixed KeyError) ---
+        # --- Step 2: Semantic Bridge Linking ---
         if len(embeddings) > 1:
             emb_matrix = np.array(embeddings)
             sim_matrix = cosine_similarity(emb_matrix)
@@ -83,23 +85,21 @@ class GraphBuilder:
                     p1, p2 = nodes_info[i]['platform'], nodes_info[j]['platform']
                     is_cross = p1 != p2
 
-                    # Apply dynamic threshold
                     threshold = self.cross_threshold if is_cross else self.same_threshold
 
                     if sim_score >= threshold:
-                        # CRITICAL: Always setting 'weight' to avoid KeyError in app.py
+                        # Storing 'weight' is critical for the sorting logic in app.py
                         self.graph.add_edge(
                             nodes_info[i]['id'], nodes_info[j]['id'],
                             weight=sim_score,
                             value=(sim_score - threshold + 0.1) * 15,
                             color="#4a90e2" if is_cross else "#d3d3d3",
-                            title=f"Semantic Match: {sim_score * 100:.1f}%",
+                            title=f"Match: {sim_score * 100:.1f}%",
                             is_cross=is_cross
                         )
 
-        # --- Step 3: Circular/Spiral Layout Pre-calculation ---
+        # --- Step 3: Layout Configuration ---
         if self.graph.number_of_nodes() > 0:
-            # Using circular_layout for that "Wheel" feel
             pos = nx.circular_layout(self.graph, scale=1000)
             for node, coords in pos.items():
                 self.graph.nodes[node]['x'], self.graph.nodes[node]['y'] = coords[0], coords[1]

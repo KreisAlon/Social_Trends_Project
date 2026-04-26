@@ -1,3 +1,4 @@
+keybert
 scikit-learn
 sentence-transformers
 beautifulsoup4

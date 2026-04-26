@@ -20,7 +20,7 @@ from collectors.mastodon import MastodonCollector
 from collectors.devto import DevToCollector
 
 # --- Configuration ---
-REFRESH_INTERVAL_MINUTES = 10
+REFRESH_INTERVAL_MINUTES = 60
 REFRESH_INTERVAL_SECONDS = REFRESH_INTERVAL_MINUTES * 60
 
 

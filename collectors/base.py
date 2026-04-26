@@ -1,22 +1,23 @@
 from abc import ABC, abstractmethod
 import sqlite3
 import math
-import statistics
 import os
+import re
+import html  # Added for unescaping HTML entitiesֿ
+import numpy as np
 from textblob import TextBlob
-from langdetect import detect, LangDetectException
-from config import KEYWORDS
+from langdetect import detect, detect_langs, LangDetectException
+from config import AI_FILTER_KEYWORDS
+from keybert import KeyBERT
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "trends_project.db")
 
+print("🧠 Loading NLP Model (KeyBERT) for dynamic entity extraction...")
+kw_model = KeyBERT(model='all-MiniLM-L6-v2')
+
 
 class BaseCollector(ABC):
-    """
-    Abstract Base Class for all data collectors.
-    Implements core logic, filtering, and statistical normalization.
-    """
-
     def __init__(self, platform_name):
         self.platform_name = platform_name
         self.stats_config = {
@@ -27,111 +28,77 @@ class BaseCollector(ABC):
         }
 
     @staticmethod
+    def clean_text(text):
+        """Sanitizes text and converts HTML entities back to plain text."""
+        if not text: return ""
+        # 1. Convert entities like &amp; to &
+        clean = html.unescape(text)
+        # 2. Remove HTML tags
+        clean = re.sub(r'<[^>]+>', ' ', clean)
+        # 3. Remove URLs
+        clean = re.sub(r'http[s]?://\S+', '', clean)
+        clean = re.sub(r'www\.\S+', '', clean)
+        # 4. Normalize spaces
+        clean = re.sub(r'\s+', ' ', clean)
+        return clean.strip()
+
+    @staticmethod
+    def is_ai_relevant(text):
+        if not text: return False
+        return any(keyword in text.lower() for keyword in AI_FILTER_KEYWORDS)
+
+    @staticmethod
     def extract_keywords(text):
-        found = []
-        if not text: return found
-        text_lower = text.lower()
-        for k in KEYWORDS:
-            if k in text_lower:
-                found.append(k)
-        return list(set(found))
+        if not text: return []
+        try:
+            extracted = kw_model.extract_keywords(text, keyphrase_ngram_range=(1, 2), stop_words='english', top_n=5)
+            return [phrase.lower() for phrase, score in extracted if score > 0.35]
+        except Exception as e:
+            print(f"Extraction error: {e}")
+            return []
 
     @staticmethod
     def analyze_sentiment(text):
-        if not text: return 0.0
+        if not text or not isinstance(text, str): return 0.0
         try:
-            analysis = TextBlob(text)
-            return analysis.sentiment.polarity
-        except Exception:
+            return TextBlob(text).sentiment.polarity
+        except:
             return 0.0
 
     def is_quality_content(self, post):
-        """
-        STRICT Quality Filter.
-        """
-        # 1. Reject empty keyword posts
-        if not post.get('keywords'):
-            return False
+        """Final gatekeeper with language and relevance check."""
+        post['title'] = self.clean_text(post.get('title', ''))
+        post['content'] = self.clean_text(post.get('content', ''))
+        full_text = f"{post['title']} {post['content']}"
 
-        # 2. Reject negative scores
-        if post.get('raw_score', 0) < 0:
-            return False
+        if not self.is_ai_relevant(full_text): return False
 
-        # 3. Reject Spam (Too many hashtags)
-        if post.get('title', '').count('#') > 5:
-            return False
-
-        # 4. STRICT Language Validation
-        # If we are not 100% sure it is English, we drop it.
-        text_to_check = (post['title'] + " " + post.get('content', ''))[:500]
-
-        if len(text_to_check) > 20:
+        # Enhanced language detection
+        text_to_check = full_text[:500]
+        if len(text_to_check) > 25:
             try:
-                lang = detect(text_to_check)
-                if lang != 'en':
-                    return False
+                langs = detect_langs(text_to_check)
+                if langs[0].lang != 'en' or langs[0].prob < 0.85: return False
             except LangDetectException:
-                # STRICT MODE: If detection fails, assume it's garbage/foreign and drop it.
                 return False
 
-        return True
+        post['keywords'] = self.extract_keywords(full_text)
+        return bool(post.get('keywords'))
 
     def recalculate_platform_stats(self):
-        """
-        Recalculates the statistical mean and standard deviation for the platform.
-        Applies Logarithmic (Log10) scaling to platforms with extreme outliers (e.g., GitHub)
-        to prevent them from dominating the global trend ranking.
-        """
-        import math
-        import sqlite3
-        import numpy as np
-
-        with sqlite3.connect("trends_project.db") as conn:
+        with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
-
-            # Step 1: Fetch all raw scores for this specific platform
             cursor.execute('SELECT id, raw_score FROM unified_posts WHERE source_platform = ?', (self.platform_name,))
             rows = cursor.fetchall()
-
-            if not rows:
-                return
-
-            # Step 2: Apply Log10 scaling ONLY for GitHub to compress astronomical star counts
-            # (e.g., 100,000 stars becomes ~5.0, making it comparable to other platforms)
-            processed_scores = []
-            for row in rows:
-                score = row[1]
-                if self.platform_name == "GitHub":
-                    score = math.log10(score + 1) if score > 0 else 0
-                processed_scores.append(score)
-
-            # Step 3: Calculate Statistical Mean and Standard Deviation
-            mean = np.mean(processed_scores)
-            std_dev = np.std(processed_scores)
-
-            # Avoid division by zero if all scores are identical
-            if std_dev == 0:
-                std_dev = 1.0
-
-            print(f"   -> {self.platform_name} Stats: Mean={mean:.2f}, StdDev={std_dev:.2f}")
-
-            # Step 4: Calculate Z-Score and apply Sigmoid function for the final Trend Score (0-100)
-            damp = self.stats_config.get('damping_factor', 1.0)
-
+            if not rows: return
+            processed_scores = [math.log10(r[1] + 1) if r[1] > 0 else 0 for r in rows]
+            mean, std_dev = np.mean(processed_scores), np.std(processed_scores) or 1.0
+            damp, shift = self.stats_config.get('damping_factor', 1.0), self.stats_config.get('sigmoid_shift', 0.5)
             for row, scaled_score in zip(rows, processed_scores):
-                post_id = row[0]
-
-                # Z-Score measures how many standard deviations the score is from the mean
-                z_score = (scaled_score - mean) / (std_dev * damp)
-
-                # Sigmoid function normalizes the score to a beautiful 0 to 100 scale
+                z_score = ((scaled_score - mean) / (std_dev * damp)) + shift
                 trend_score = (1 / (1 + math.exp(-z_score))) * 100
-
-                # Step 5: Update the database with the normalized score
-                cursor.execute('UPDATE unified_posts SET trend_score = ? WHERE id = ?', (trend_score, post_id))
-
+                cursor.execute('UPDATE unified_posts SET trend_score = ? WHERE id = ?', (trend_score, row[0]))
             conn.commit()
-            conn.close()
 
     @abstractmethod
     async def collect(self, client):
