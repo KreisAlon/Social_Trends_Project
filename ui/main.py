@@ -26,8 +26,13 @@ REFRESH_INTERVAL_SECONDS = REFRESH_INTERVAL_MINUTES * 60
 
 async def run_cycle(cycle_num, start_time):
     """
-    Executes a single data collection cycle, including storage,
-    AI embedding generation, and cross-platform normalization.
+    Executes a single data collection cycle.
+    
+    Architecture Note:
+    This cycle now implements full concurrency at the highest level. Instead of 
+    waiting for each platform to finish its collection sequentially, it dispatches 
+    all platform collectors simultaneously using asyncio.gather. It also handles 
+    storage via lightweight JSON keywords and cross-platform normalization.
     """
     print(f"\n" + "=" * 80)
     print(f"🕒 CYCLE #{cycle_num} STARTING | TIME: {start_time}")
@@ -47,13 +52,24 @@ async def run_cycle(cycle_num, start_time):
     all_posts = []
 
     try:
+        # Using a shared async client with connection pooling for maximum network efficiency
         async with httpx.AsyncClient(timeout=30.0, headers={'User-Agent': 'TrendAnalyzer/5.0'}) as client:
-            # 1. Ingest Data from all platforms
-            for collector in collectors:
-                platform_posts = await collector.collect(client)
+            
+            # 1. Ingest Data from all platforms CONCURRENTLY
+            print(">>> 🚀 Launching all platform collectors simultaneously...")
+            
+            # Create a list of awaitable tasks, one for each platform's main collect() method
+            collection_tasks = [collector.collect(client) for collector in collectors]
+            
+            # Execute all high-level platform tasks concurrently. 
+            # Total execution time is now bounded by the slowest platform, not the sum of all.
+            platform_results = await asyncio.gather(*collection_tasks)
+            
+            # Flatten the list of lists returned by gather() into a single 1D array of posts
+            for platform_posts in platform_results:
                 all_posts.extend(platform_posts)
 
-            # 2. Save new unique items and generate semantic embeddings
+            # 2. Save new unique items (Embeddings removed, now using lightweight keywords)
             new_count = db_manager.save_posts(all_posts)
             print(f">>> 💾 Saved {new_count} new unique items to the database.")
 
