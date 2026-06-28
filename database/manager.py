@@ -1,51 +1,21 @@
 import sqlite3
 import json
-import numpy as np
 import os
-import logging
-import warnings
 from datetime import datetime
-
-# =================================================================
-# THE NUCLEAR OPTION: Ultimate Silence Block
-# This MUST be defined before importing SentenceTransformer to work
-# =================================================================
-# 1. Disable HuggingFace Hub progress bars completely
-os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
-
-# 2. Force HuggingFace Hub and Transformers to only show critical errors
-os.environ["HF_HUB_VERBOSITY"] = "error"
-os.environ["TRANSFORMERS_VERBOSITY"] = "error"
-
-# 3. Suppress specific UserWarnings from huggingface_hub regarding authentication
-warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub.*")
-
-# 4. Disable parallelism warnings from tokenizers during encoding
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-# =================================================================
-
-from sentence_transformers import SentenceTransformer
-
 
 class TrendManager:
     """
-    Manages the SQLite database and semantic vector generation for trends.
-    Includes data health monitoring and noise suppression for AI models.
+    Manages the SQLite database for trends.
+    Uses dynamic entities (keywords) for semantic linking instead of heavy embeddings.
     """
 
     def __init__(self, db_path="trends_project.db"):
         self.db_path = db_path
-
-        # Initialize the Sentence-Transformer model
-        # This model transforms text into 384-dimensional semantic vectors.
-        print("🧠 Loading NLP Model for semantic analysis...")
-        self.nlp_model = SentenceTransformer('all-MiniLM-L6-v2')
-        print("✅ NLP Model Loaded Successfully!")
-
+        print("⚡ Initializing Lightweight Database Manager...")
         self._init_db()
 
     def _init_db(self):
-        """Initializes the schema with support for scores, dynamic keywords, and semantic embeddings."""
+        """Initializes the schema with support for dynamic keywords (entities)."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -62,14 +32,13 @@ class TrendManager:
                     published_at TEXT,
                     collected_at TEXT,
                     keywords TEXT,      -- Stores extracted dynamic entities as JSON
-                    embedding TEXT,     -- High-dimensional vector stored as JSON
                     UNIQUE(source_platform, external_id)
                 )
             ''')
             conn.commit()
 
     def save_posts(self, posts):
-        """Processes a list of posts, generates embeddings, and saves them to the DB."""
+        """Processes a list of posts and saves them to the DB using only keywords."""
         if not posts:
             return 0
 
@@ -80,24 +49,15 @@ class TrendManager:
 
             for post in posts:
                 try:
-                    # Create a rich text representation for embedding
-                    text_to_embed = f"{post.get('title', '')}. {post.get('content', '')}"
-
-                    # Generate semantic vector
-                    embedding_vector = self.nlp_model.encode(text_to_embed)
-
-                    # Convert the vector to a JSON string for storage
-                    embedding_json = json.dumps(embedding_vector.tolist())
-
-                    # Convert keyword list to JSON string for database storage
+                    # Convert the keywords (entities) list to a JSON string for storage
                     keywords_json = json.dumps(post.get('keywords', []))
 
                     cursor.execute('''
                         INSERT OR IGNORE INTO unified_posts (
                             source_platform, external_id, title, content, 
                             author, url, raw_score, trend_score, 
-                            published_at, collected_at, keywords, embedding
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            published_at, collected_at, keywords
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
                         post['source_platform'],
                         post['external_id'],
@@ -109,8 +69,7 @@ class TrendManager:
                         post.get('trend_score', 0),
                         post['published_at'],
                         collected_at,
-                        keywords_json,
-                        embedding_json
+                        keywords_json
                     ))
                     if cursor.rowcount > 0:
                         added_count += 1
@@ -129,10 +88,7 @@ class TrendManager:
             return [dict(row) for row in cursor.fetchall()]
 
     def get_db_stats(self):
-        """
-        Queries the database to provide a quick summary of ingested posts per platform.
-        Used for debugging and monitoring data health.
-        """
+        """Queries the database to provide a quick summary."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute('''
